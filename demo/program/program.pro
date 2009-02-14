@@ -1,8 +1,8 @@
 TEMPLATE = app
 TARGET = test
 QT -= gui
-CONFIG -= app_bundle debug
-CONFIG += warn_off release console
+CONFIG -= app_bundle
+CONFIG += debug_and_release warn_off console
 
 HEADERS += TestThread.h
 SOURCES += TestThread.cpp
