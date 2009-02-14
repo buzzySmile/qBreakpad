@@ -1,0 +1,7 @@
+/*! \mainpage Breakpad-Qt
+ *	See namespace BreakpadQt for few docs.<br/>
+ *	<br/>
+ *	Docs from Google:<br/>
+ *		http://code.google.com/p/google-breakpad/wiki/ClientDesign <br/>
+ *		http://code.google.com/p/google-breakpad/wiki/ProcessorDesign <br/>
+ */
