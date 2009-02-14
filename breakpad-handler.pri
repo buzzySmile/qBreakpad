@@ -6,11 +6,16 @@ SOURCES += $$PWD/handler/BreakpadHandler.cpp
 ## google-breakpad
 BREAKPAD_PATH = $$PWD/third-party/google-breakpad/src
 INCLUDEPATH += $$BREAKPAD_PATH
-SOURCES += $$BREAKPAD_PATH/client/minidump_file_writer.cc \
-    $$BREAKPAD_PATH/common/string_conversion.cc \
-    $$BREAKPAD_PATH/common/convert_UTF.c \
-    $$BREAKPAD_PATH/common/md5.c
 
+# every *nix
+unix {
+    SOURCES += $$BREAKPAD_PATH/client/minidump_file_writer.cc \
+        $$BREAKPAD_PATH/common/string_conversion.cc \
+        $$BREAKPAD_PATH/common/convert_UTF.c \
+        $$BREAKPAD_PATH/common/md5.c
+}
+
+# mac os x
 mac { 
     # hack to make minidump_generator.cc compile as it uses
     # esp instead of __esp
@@ -26,6 +31,7 @@ mac {
     LIBS += -lcrypto
 }
 
+# other *nix
 unix:!mac {
     SOURCES += $$BREAKPAD_PATH/client/linux/handler/exception_handler.cc \
         $$BREAKPAD_PATH/client/linux/handler/minidump_generator.cc \
@@ -35,5 +41,7 @@ unix:!mac {
 }
 
 win32 {
-    warning("win32 platform is untested!")
+    SOURCES += $$BREAKPAD_PATH/client/windows/handler/exception_handler.cc \
+        $$BREAKPAD_PATH/client/windows/crash_generation/crash_generation_client.cc \
+        $$BREAKPAD_PATH/common/windows/guid_string.cc
 }
