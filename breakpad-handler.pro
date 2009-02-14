@@ -2,8 +2,7 @@ TEMPLATE = lib
 TARGET = $$PWD/breakpad-qt
 VERSION = 0.2.0
 
-CONFIG += static release warn_on
-CONFIG -= debug
+CONFIG += static debug_and_release warn_on
 QT -= gui
 
 OBJECTS_DIR = _build/obj
