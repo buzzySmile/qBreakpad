@@ -2,3 +2,4 @@
 Makefile*
 _build/
 qtc-gdbmacros/
+*.pro.user
