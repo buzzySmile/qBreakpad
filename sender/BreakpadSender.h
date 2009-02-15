@@ -51,6 +51,9 @@ public:
 	void setFile(const QString& filename);
 	void send();
 
+	QString errorString() const { return m_errorString; }
+	QString responce() const { return m_responce; }
+
 signals:
 	void done(bool error);
 
@@ -64,6 +67,8 @@ private:
 	QUrl m_reportUrl;
 	QString m_filename;
 	QMap<std::string, std::string> m_params;
+	QString m_errorString;
+	QString m_responce;
 };
 
 }	// namespace

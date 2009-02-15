@@ -51,12 +51,17 @@ Sender::~Sender()
 
 void Sender::run()
 {
-	std::string resString;
+	m_responce.clear();
+	m_errorString.clear();
+
+	std::string responce, error;
 	// TODO (AlekSi) checks of URL parts: username, password, etc. - strip it all
 	const bool success = google_breakpad::HTTPUpload::SendRequest(m_reportUrl.toString().toStdString(), m_params.toStdMap(),
 																	m_filename.toStdString(), std::string("file"),
 																	std::string(), std::string(),
-																	&resString, &resString);
+																	&responce, &error);
+	m_responce = QString::fromStdString(responce);
+	m_errorString = QString::fromStdString(error);
 	emit done(success);
 }
 
