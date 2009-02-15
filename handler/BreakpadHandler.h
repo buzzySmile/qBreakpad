@@ -48,8 +48,6 @@ private:
 	GlobalHandler(const GlobalHandler&);
 	GlobalHandler& operator=(const GlobalHandler&);
 
-	bool m_fullyCreated;
-
 	static google_breakpad::ExceptionHandler* handler_;
 	static GlobalHandler* instance_;
 };

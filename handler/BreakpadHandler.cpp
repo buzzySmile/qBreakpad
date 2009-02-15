@@ -98,7 +98,6 @@ google_breakpad::ExceptionHandler* GlobalHandler::handler_ = 0;
 GlobalHandler* GlobalHandler::instance_ = 0;
 
 GlobalHandler::GlobalHandler(const QString& minidumpPath, const QString& reporter)
-	: m_fullyCreated(false)
 {
 	if(instance_) {
 		qWarning("BreakpadQt: GlobalHandler already exists!");
@@ -141,17 +140,17 @@ GlobalHandler::GlobalHandler(const QString& minidumpPath, const QString& reporte
 		/*FilterCallback*/ 0, MDCallback, /*context*/ 0, true);
 
 	instance_ = this;
-	m_fullyCreated = true;
 }
 
 GlobalHandler::~GlobalHandler()
 {
-	if(m_fullyCreated) {
+	if(this == instance_) {
 		delete handler_;
 		handler_ = 0;
-		instance_ = 0;
 
 		reporterFullFileName_.clear();
+
+		instance_ = 0;
 	}
 }
 
