@@ -26,8 +26,8 @@
 	OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BREAKPAD_H
-#define BREAKPAD_H
+#ifndef BREAKPAD_HANDLER_H
+#define BREAKPAD_HANDLER_H
 
 #include <QString>
 namespace google_breakpad { class ExceptionHandler; }
@@ -56,4 +56,4 @@ private:
 
 }	// namespace
 
-#endif
+#endif	// BREAKPAD_HANDLER_H

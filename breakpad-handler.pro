@@ -1,5 +1,5 @@
 TEMPLATE = lib
-TARGET = $$PWD/breakpad-qt
+TARGET = $$PWD/breakpad-handler
 VERSION = 0.3.0
 
 CONFIG += static debug_and_release warn_on
