@@ -1,6 +1,6 @@
 TEMPLATE = lib
 TARGET = $$PWD/breakpad-qt
-VERSION = 0.2.0
+VERSION = 0.3.0
 
 CONFIG += static debug_and_release warn_on
 QT -= gui
