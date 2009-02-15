@@ -2,6 +2,7 @@ TEMPLATE = app
 TARGET = reporter
 CONFIG -= app_bundle
 CONFIG += debug_and_release warn_on
+CONFIG += thread exceptions rtti stl
 
 SOURCES += main.cpp
 

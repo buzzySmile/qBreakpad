@@ -3,6 +3,8 @@ INCLUDEPATH += $$PWD/handler
 HEADERS += $$PWD/handler/BreakpadHandler.h
 SOURCES += $$PWD/handler/BreakpadHandler.cpp
 
+include($$PWD/test-config.pri)
+
 ## google-breakpad
 BREAKPAD_PATH = $$PWD/third-party/google-breakpad/src
 INCLUDEPATH += $$BREAKPAD_PATH

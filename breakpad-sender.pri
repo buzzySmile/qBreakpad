@@ -3,6 +3,8 @@ INCLUDEPATH += $$PWD/sender
 HEADERS += $$PWD/sender/BreakpadSender.h
 SOURCES += $$PWD/sender/BreakpadSender.cpp
 
+include($$PWD/test-config.pri)
+
 ## google-breakpad
 BREAKPAD_PATH = $$PWD/third-party/google-breakpad/src
 INCLUDEPATH += $$BREAKPAD_PATH

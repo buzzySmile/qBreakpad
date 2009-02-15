@@ -3,6 +3,7 @@ TARGET = $$PWD/breakpad-sender
 VERSION = 0.3.0
 
 CONFIG += static debug_and_release warn_on
+CONFGI += thread exceptions rtti stl
 QT -= gui
 
 OBJECTS_DIR = _build/obj
