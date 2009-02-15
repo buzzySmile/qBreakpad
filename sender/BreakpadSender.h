@@ -29,8 +29,33 @@
 #ifndef BREAKPAD_SENDER_H
 #define BREAKPAD_SENDER_H
 
+#include <QString>
+#include <QMap>
+
+#include <string>
+
 namespace BreakpadQt
 {
+
+class Sender
+{
+public:
+	Sender(const QString& reportUrl);
+	~Sender();
+
+	void addParameter(const QString& key, const QString& value);
+	void setFile(const QString& filename);
+	bool send(QString* result);
+
+private:
+	Sender(const Sender&);
+	Sender& operator=(const Sender&);
+
+	QString m_reportUrl;
+	QString m_filename;
+	QMap<std::string, std::string> m_params;
+};
+
 }	// namespace
 
 #endif	// BREAKPAD_SENDER_H

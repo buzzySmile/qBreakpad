@@ -28,6 +28,52 @@
 
 #include "BreakpadSender.h"
 
+#include <QDir>
+#include <QByteArray>
+
+#if defined(Q_OS_MAC)
+#elif defined(Q_OS_LINUX)
+#include "common/linux/http_upload.h"
+#elif defined(Q_OS_WIN32)
+#endif
+
 namespace BreakpadQt
 {
+
+Sender::Sender(const QString& reportUrl)
+	: m_reportUrl(reportUrl)
+{
+}
+
+Sender::~Sender()
+{
+}
+
+void Sender::addParameter(const QString& key, const QString& value)
+{
+	Q_ASSERT(!key.contains(QLatin1Char('"')));
+	Q_ASSERT(key.toLatin1() == key.toUtf8());
+	m_params[key.toStdString()] = value.toStdString();
+}
+
+void Sender::setFile(const QString& filename)
+{
+	Q_ASSERT(QDir::isAbsolutePath(filename));
+	Q_ASSERT(QDir().exists(filename));
+	m_filename = filename;
+}
+
+bool Sender::send(QString* result)
+{
+	std::string resString;
+	const bool success = google_breakpad::HTTPUpload::SendRequest(m_reportUrl.toStdString(), m_params.toStdMap(),
+																	m_filename.toStdString(), std::string("file"),
+																	std::string(), std::string(),
+																	&resString, &resString);
+	if(result) {
+		result->fromStdString(resString);
+	}
+	return success;
+}
+
 }	// namespace

@@ -17,6 +17,7 @@ mac {
 
 # other *nix
 unix:!mac {
+    SOURCES += $$BREAKPAD_PATH/common/linux/http_upload.cc
 }
 
 win32 {
