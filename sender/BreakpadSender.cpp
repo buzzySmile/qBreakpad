@@ -48,7 +48,7 @@ namespace BreakpadQt
 {
 
 Sender::Sender(const QUrl& reportUrl)
-	: m_reportUrl(reportUrl)
+	: m_reportUrl(reportUrl), m_requestSended(false)
 {
 }
 
@@ -58,8 +58,10 @@ Sender::~Sender()
 
 void Sender::run()
 {
+	m_requestSended = false;
 	m_responce.clear();
 	m_errorString.clear();
+
 #if defined(Q_OS_LINUX)
 	string url = m_reportUrl.toString().toStdString();
 	map<string, string> parameters;
@@ -79,10 +81,10 @@ void Sender::run()
 	// TODO (AlekSi) params map
 
 	// TODO (AlekSi) checks of URL parts: username, password, etc. - strip it all
-	const bool success = google_breakpad::HTTPUpload::SendRequest(url, parameters,
+	m_requestSended = google_breakpad::HTTPUpload::SendRequest(url, parameters,
 																	file, file_part_name,
 #if defined(Q_OS_LINUX)
-																	string(), string(),
+																	/* proxy */ string(), /* proxy_user_pwd */ string(),
 #endif
 																	&responce, &error);
 #if defined(Q_OS_LINUX)
@@ -92,7 +94,8 @@ void Sender::run()
 	m_responce = QString::fromStdWString(responce);
 	m_errorString = QString::number(error);
 #endif
-	emit done(success);
+
+	emit done(!m_requestSended);
 }
 
 void Sender::addParameter(const QLatin1String& key, const QString& value)
@@ -109,7 +112,7 @@ void Sender::setFile(const QString& filename)
 	m_filename = filename;
 }
 
-void Sender::send()
+void Sender::sendRequest()
 {
 	start();
 }

@@ -47,8 +47,9 @@ public:
 
 	void addParameter(const QLatin1String& key, const QString& value);
 	void setFile(const QString& filename);
-	void send();
+	void sendRequest();
 
+	bool requestSended() const { return m_requestSended; }
 	QString errorString() const { return m_errorString; }
 	QString responce() const { return m_responce; }
 
@@ -62,7 +63,8 @@ private:
 	Sender(const Sender&);
 	Sender& operator=(const Sender&);
 
-	QUrl m_reportUrl;
+	const QUrl m_reportUrl;
+	bool m_requestSended;
 	QString m_filename;
 	QMap<QLatin1String, QString> m_params;
 	QString m_errorString;

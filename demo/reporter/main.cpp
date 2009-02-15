@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	sender.addParameter(QLatin1String("param1"), QString::fromLatin1("value1"));
 	sender.setFile(qApp->applicationFilePath());
 	app.connect(&sender, SIGNAL(done(bool)), SLOT(quit()));
-	sender.send();
+	sender.sendRequest();
 	int res = app.exec();
 	sender.wait();
 	return res;
