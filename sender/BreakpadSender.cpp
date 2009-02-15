@@ -49,6 +49,17 @@ Sender::~Sender()
 {
 }
 
+void Sender::run()
+{
+	std::string resString;
+	// TODO (AlekSi) checks of URL parts: username, password, etc. - strip it all
+	const bool success = google_breakpad::HTTPUpload::SendRequest(m_reportUrl.toString().toStdString(), m_params.toStdMap(),
+																	m_filename.toStdString(), std::string("file"),
+																	std::string(), std::string(),
+																	&resString, &resString);
+	emit done(success);
+}
+
 void Sender::addParameter(const QString& key, const QString& value)
 {
 	Q_ASSERT(!key.contains(QLatin1Char('"')));
@@ -63,18 +74,9 @@ void Sender::setFile(const QString& filename)
 	m_filename = filename;
 }
 
-bool Sender::send(QString* result)
+void Sender::send()
 {
-	std::string resString;
-	// TODO (AlekSi) checks of URL parts: username, password, etc. - strip it all
-	const bool success = google_breakpad::HTTPUpload::SendRequest(m_reportUrl.toString().toStdString(), m_params.toStdMap(),
-																	m_filename.toStdString(), std::string("file"),
-																	std::string(), std::string(),
-																	&resString, &resString);
-	if(result) {
-		result->fromStdString(resString);
-	}
-	return success;
+	start();
 }
 
 }	// namespace

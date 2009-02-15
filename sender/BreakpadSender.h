@@ -32,21 +32,30 @@
 #include <QString>
 #include <QMap>
 #include <QUrl>
+#include <QThread>
 
 #include <string>
 
 namespace BreakpadQt
 {
 
-class Sender
+class Sender : public QThread
 {
+	Q_OBJECT
+
 public:
 	Sender(const QUrl& reportUrl);
-	~Sender();
+	virtual ~Sender();
 
 	void addParameter(const QString& key, const QString& value);
 	void setFile(const QString& filename);
-	bool send(QString* result = 0);
+	void send();
+
+signals:
+	void done(bool error);
+
+protected:
+	virtual void run();
 
 private:
 	Sender(const Sender&);
