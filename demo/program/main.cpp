@@ -1,17 +1,18 @@
 /* This file is in public domain. */
 
+#include "TestThread.h"
+
+#include <BreakpadHandler.h>
+
 #include <QCoreApplication>
 #include <QTimer>
 #include <QDateTime>
 
-#include <BreakpadHandler.h>
-
-#include "TestThread.h"
-
 int main(int argc, char* argv[])
 {
 	QCoreApplication app(argc, argv);
-	BreakpadQt::GlobalHandler handler(app.applicationDirPath() + "/crashes");
+	BreakpadQt::GlobalHandler handler(app.applicationDirPath() + QLatin1String("/crashes"),
+										app.applicationDirPath() + QLatin1String("/../reporter/reporter"));
 
 	qsrand(QDateTime::currentDateTime().toTime_t());
 	TestThread t1(false, qrand());

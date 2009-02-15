@@ -13,3 +13,6 @@ include($$PWD/../../breakpad-handler.pri)
 
 OBJECTS_DIR = _build/obj
 MOC_DIR = _build
+
+DEFINES += QT_NO_CAST_TO_ASCII
+DEFINES += QT_NO_CAST_FROM_ASCII
