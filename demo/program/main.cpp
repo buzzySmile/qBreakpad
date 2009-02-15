@@ -22,6 +22,5 @@ int main(int argc, char* argv[])
 	t2.start();
 
 	QTimer::singleShot(3000, qApp, SLOT(quit()));
-	BreakpadQt::GlobalHandler::instance()->writeMinidump();
 	return app.exec();
 }
