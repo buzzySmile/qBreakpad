@@ -40,7 +40,7 @@
 namespace BreakpadQt
 {
 
-Sender::Sender(const QString& reportUrl)
+Sender::Sender(const QUrl& reportUrl)
 	: m_reportUrl(reportUrl)
 {
 }
@@ -66,7 +66,8 @@ void Sender::setFile(const QString& filename)
 bool Sender::send(QString* result)
 {
 	std::string resString;
-	const bool success = google_breakpad::HTTPUpload::SendRequest(m_reportUrl.toStdString(), m_params.toStdMap(),
+	// TODO (AlekSi) checks of URL parts: username, password, etc. - strip it all
+	const bool success = google_breakpad::HTTPUpload::SendRequest(m_reportUrl.toString().toStdString(), m_params.toStdMap(),
 																	m_filename.toStdString(), std::string("file"),
 																	std::string(), std::string(),
 																	&resString, &resString);

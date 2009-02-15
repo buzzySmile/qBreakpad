@@ -31,6 +31,7 @@
 
 #include <QString>
 #include <QMap>
+#include <QUrl>
 
 #include <string>
 
@@ -40,18 +41,18 @@ namespace BreakpadQt
 class Sender
 {
 public:
-	Sender(const QString& reportUrl);
+	Sender(const QUrl& reportUrl);
 	~Sender();
 
 	void addParameter(const QString& key, const QString& value);
 	void setFile(const QString& filename);
-	bool send(QString* result);
+	bool send(QString* result = 0);
 
 private:
 	Sender(const Sender&);
 	Sender& operator=(const Sender&);
 
-	QString m_reportUrl;
+	QUrl m_reportUrl;
 	QString m_filename;
 	QMap<std::string, std::string> m_params;
 };
