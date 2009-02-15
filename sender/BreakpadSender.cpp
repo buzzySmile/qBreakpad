@@ -98,7 +98,7 @@ void Sender::run()
 void Sender::addParameter(const QLatin1String& key, const QString& value)
 {
 	Q_ASSERT(!QString(key).contains(QLatin1Char('"')));
-	Q_ASSERT(key == QString(key).toLatin1());
+	Q_ASSERT(!qstrcmp(key.latin1(), QString(key).toLatin1().constData()));
 	m_params[key] = value;
 }
 
