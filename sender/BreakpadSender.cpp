@@ -31,10 +31,17 @@
 #include <QDir>
 #include <QByteArray>
 
+#include <string>
+#include <map>
+using std::string;
+using std::wstring;
+using std::map;
+
 #if defined(Q_OS_MAC)
 #elif defined(Q_OS_LINUX)
 #include "common/linux/http_upload.h"
 #elif defined(Q_OS_WIN32)
+#include "common/windows/http_upload.h"
 #endif
 
 namespace BreakpadQt
@@ -53,23 +60,46 @@ void Sender::run()
 {
 	m_responce.clear();
 	m_errorString.clear();
+#if defined(Q_OS_LINUX)
+	string url = m_reportUrl.toString().toStdString();
+	map<string, string> parameters;
+	string file = m_filename.toStdString();
+	string file_part_name("file");
+	string responce;
+	string error;
+#elif defined(Q_OS_WIN32)
+	wstring url = m_reportUrl.toString().toStdWString();
+	map<wstring, wstring> parameters;
+	wstring file = m_filename.toStdWString();
+	wstring file_part_name; // FIXME (AlekSi) ("file");
+	wstring responce;
+	int error;
+#endif
 
-	std::string responce, error;
+	// TODO (AlekSi) params map
+
 	// TODO (AlekSi) checks of URL parts: username, password, etc. - strip it all
-	const bool success = google_breakpad::HTTPUpload::SendRequest(m_reportUrl.toString().toStdString(), m_params.toStdMap(),
-																	m_filename.toStdString(), std::string("file"),
-																	std::string(), std::string(),
+	const bool success = google_breakpad::HTTPUpload::SendRequest(url, parameters,
+																	file, file_part_name,
+#if defined(Q_OS_LINUX)
+																	string(), string(),
+#endif
 																	&responce, &error);
+#if defined(Q_OS_LINUX)
 	m_responce = QString::fromStdString(responce);
 	m_errorString = QString::fromStdString(error);
+#elif defined(Q_OS_WIN32)
+	m_responce = QString::fromStdWString(responce);
+	m_errorString = QString::number(error);
+#endif
 	emit done(success);
 }
 
-void Sender::addParameter(const QString& key, const QString& value)
+void Sender::addParameter(const QLatin1String& key, const QString& value)
 {
-	Q_ASSERT(!key.contains(QLatin1Char('"')));
-	Q_ASSERT(key.toLatin1() == key.toUtf8());
-	m_params[key.toStdString()] = value.toStdString();
+	Q_ASSERT(!QString(key).contains(QLatin1Char('"')));
+	Q_ASSERT(key == QString(key).toLatin1());
+	m_params[key] = value;
 }
 
 void Sender::setFile(const QString& filename)

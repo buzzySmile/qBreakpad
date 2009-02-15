@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 {
 	QCoreApplication app(argc, argv);
 	BreakpadQt::Sender sender(QUrl(QLatin1String("http://localhost:8080/breakpad-test/receiver")));
-	sender.addParameter(QLatin1String("param1"), QLatin1String("value1"));
+	sender.addParameter(QLatin1String("param1"), QString::fromLatin1("value1"));
 	sender.setFile(qApp->applicationFilePath());
 	sender.send();
 

@@ -21,4 +21,6 @@ unix:!mac {
 }
 
 win32 {
+    SOURCES += $$BREAKPAD_PATH/common/windows/http_upload.cc
+    LIBS += -lwininet
 }

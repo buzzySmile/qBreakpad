@@ -34,8 +34,6 @@
 #include <QUrl>
 #include <QThread>
 
-#include <string>
-
 namespace BreakpadQt
 {
 
@@ -47,7 +45,7 @@ public:
 	Sender(const QUrl& reportUrl);
 	virtual ~Sender();
 
-	void addParameter(const QString& key, const QString& value);
+	void addParameter(const QLatin1String& key, const QString& value);
 	void setFile(const QString& filename);
 	void send();
 
@@ -66,7 +64,7 @@ private:
 
 	QUrl m_reportUrl;
 	QString m_filename;
-	QMap<std::string, std::string> m_params;
+	QMap<QLatin1String, QString> m_params;
 	QString m_errorString;
 	QString m_responce;
 };
