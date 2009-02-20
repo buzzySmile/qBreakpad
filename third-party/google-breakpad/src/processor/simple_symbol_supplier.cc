@@ -62,15 +62,16 @@ SymbolSupplier::SymbolResult SimpleSymbolSupplier::GetSymbolFile(
 
   for (unsigned int path_index = 0; path_index < paths_.size(); ++path_index) {
     SymbolResult result;
-    if ((result = GetSymbolFileAtPath(module, system_info, paths_[path_index],
-                                      symbol_file)) != NOT_FOUND) {
+    if ((result = GetSymbolFileAtPathFromRoot(module, system_info,
+                                              paths_[path_index],
+                                              symbol_file)) != NOT_FOUND) {
       return result;
     }
   }
   return NOT_FOUND;
 }
 
-SymbolSupplier::SymbolResult SimpleSymbolSupplier::GetSymbolFileAtPath(
+SymbolSupplier::SymbolResult SimpleSymbolSupplier::GetSymbolFileAtPathFromRoot(
     const CodeModule *module, const SystemInfo *system_info,
     const string &root_path, string *symbol_file) {
   BPLOG_IF(ERROR, !symbol_file) << "SimpleSymbolSupplier::GetSymbolFileAtPath "
