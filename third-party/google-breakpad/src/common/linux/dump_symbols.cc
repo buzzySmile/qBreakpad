@@ -759,7 +759,7 @@ bool DumpSymbols::WriteSymbolFile(const std::string &obj_file,
     return false;
   void *obj_base = mmap(NULL, st.st_size,
                         PROT_READ | PROT_WRITE, MAP_PRIVATE, obj_fd, 0);
-  if (!obj_base)
+  if (obj_base == MAP_FAILED)
     return false;
   MmapWrapper map_wrapper(obj_base, st.st_size);
   ElfW(Ehdr) *elf_header = reinterpret_cast<ElfW(Ehdr) *>(obj_base);
