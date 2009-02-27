@@ -1,7 +1,7 @@
 CXX=g++
 CC=gcc
 
-CXXFLAGS=-gstabs -I../../.. -Wall -D_REENTRANT
+CXXFLAGS=-gstabs+ -I../../.. -Wall -D_REENTRANT
 LDFLAGS=-lpthread
 
 OBJ_DIR=.

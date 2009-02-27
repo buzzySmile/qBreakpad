@@ -42,7 +42,6 @@
 #include <unistd.h>
 
 #include <cstdio>
-#include <cstdlib>
 #include <cassert>
 #include <functional>
 #include <iostream>

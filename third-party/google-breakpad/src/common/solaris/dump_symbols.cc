@@ -176,7 +176,9 @@ inline void RecalculateOffset(struct slist* cur_list, char *stabstr) {
 // Demangle using demangle library on Solaris.
 std::string Demangle(const char *mangled) {
   int status = 0;
+  std::string str(mangled);
   char *demangled = (char *)malloc(demangleLen);
+
   if (!demangled) {
     fprintf(stderr, "no enough memory.\n");
     goto out;
@@ -188,12 +190,11 @@ std::string Demangle(const char *mangled) {
     goto out;
   }
 
-  std::string str(demangled);
+  str = demangled;
   free(demangled);
-  return str;
 
 out:
-  return std::string(mangled);
+  return str; 
 }
 
 bool WriteFormat(int fd, const char *fmt, ...) {
