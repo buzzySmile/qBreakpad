@@ -34,7 +34,6 @@
 //  symbol_file: the breakpad format symbol file
 
 #include <unistd.h>
-#include <cstdlib>
 
 #include <string>
 
