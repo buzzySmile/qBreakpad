@@ -31,6 +31,9 @@
 #include <QDir>
 #include <QProcess>
 #include <QCoreApplication>
+#if defined(QT_GUI_LIB)
+#	include <QDesktopServices>
+#endif
 
 #if defined(Q_OS_MAC)
 #include "client/mac/handler/exception_handler.h"
@@ -43,38 +46,19 @@
 namespace BreakpadQt
 {
 
-static QString reporterFullFileName_;
+static QString reporter_;
 
-/*	From exception_handler.h:
-
-	A callback function to run after the minidump has been written.
-	minidump_id is a unique id for the dump, so the minidump
-	file is <dump_path>\<minidump_id>.dmp.  context is the parameter supplied
-	by the user as callback_context when the handler was created.  succeeded
-	indicates whether a minidump file was successfully written.
-
-	If an exception occurred and the callback returns true, Breakpad will
-	treat the exception as fully-handled, suppressing any other handlers from
-	being notified of the exception.  If the callback returns false, Breakpad
-	will treat the exception as unhandled, and allow another handler to handle
-	it. If there are no other handlers, Breakpad will report the exception to
-	the system as unhandled, allowing a debugger or native crash dialog the
-	opportunity to handle the exception.  Most callback implementations
-	should normally return the value of |succeeded|, or when they wish to
-	not report an exception of handled, false.  Callbacks will rarely want to
-	return true directly (unless |succeeded| is true).
-*/
-#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
-bool MDCallback(const char* _dump_dir,
-				const char* _minidump_id,
-				void *context, bool success)
-#elif defined(Q_OS_WIN32)
+#if defined(Q_OS_WIN32)
 bool MDCallback(const wchar_t* _dump_dir,
 				const wchar_t* _minidump_id,
 				void* context,
 				EXCEPTION_POINTERS* exinfo,
 				MDRawAssertionInfo* assertion,
 				bool success)
+#else
+bool DumpCallback(const char* _dump_dir,
+				const char* _minidump_id,
+				void *context, bool success)
 #endif
 {
 	Q_UNUSED(_dump_dir);
@@ -90,68 +74,87 @@ bool MDCallback(const wchar_t* _dump_dir,
 		Creating QString's, using qDebug, etc. - everything is crash-unfriendly.
 	*/
 
-	QProcess::startDetached(reporterFullFileName_);
+	if(!reporter_.isEmpty()) {
+		QProcess::startDetached(reporter_);	// very likely we will die there
+	}
 	return success;
 }
 
 google_breakpad::ExceptionHandler* GlobalHandler::handler_ = 0;
-GlobalHandler* GlobalHandler::instance_ = 0;
 
-GlobalHandler::GlobalHandler(const QString& minidumpPath, const QString& reporter)
+GlobalHandler* GlobalHandler::instance()
 {
-	if(instance_) {
-		qWarning("BreakpadQt: GlobalHandler already exists!");
-		return;
-	}
+	static GlobalHandler globalHandler;
+	return &globalHandler;
+}
 
-	// path to crash reporter
-	if(reporter.isNull()) {
-#	if defined(Q_OS_MAC)
-		// TODO what if we are not inside bundle?
-		reporterFullFileName_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/../Resources/crashreporter"));
-#	elif defined(Q_OS_LINUX)
-		// MAYBE better default place? libexec? or what?
-		reporterFullFileName_ = qApp->applicationDirPath() + QLatin1String("/crashreporter");
-#	elif defined(Q_OS_WIN32)
-		reporterFullFileName_ = qApp->applicationDirPath() + QLatin1String("/crashreporter.exe");
-#	else
-		What is this?!
-#	endif
-	} else {
-		reporterFullFileName_ = reporter;
-		if(!QDir::isAbsolutePath(reporterFullFileName_)) {
-			reporterFullFileName_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + reporter);
-		}
-	}
-	Q_ASSERT(QDir::isAbsolutePath(reporterFullFileName_));
-	Q_ASSERT(QDir().exists(reporterFullFileName_));
-
-	// path to minidumps
-	Q_ASSERT(QDir::isAbsolutePath(minidumpPath));
-	QDir().mkpath(minidumpPath);
-	Q_ASSERT(QDir().exists(minidumpPath));
-
-	handler_ = new google_breakpad::ExceptionHandler(
-#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
-		minidumpPath.toUtf8().data(),
-#elif defined(Q_OS_WIN32)
-		minidumpPath.toStdWString(),
-#endif
-		/*FilterCallback*/ 0, MDCallback, /*context*/ 0, true);
-
-	instance_ = this;
+GlobalHandler::GlobalHandler()
+{
+	handler_ = new google_breakpad::ExceptionHandler(/*DumpPath*/ "", /*FilterCallback*/ 0, DumpCallback, /*context*/ 0, true);
+	reporter_.clear();
 }
 
 GlobalHandler::~GlobalHandler()
 {
-	if(this == instance_) {
-		delete handler_;
-		handler_ = 0;
+	delete handler_;
+	handler_ = 0;
+}
 
-		reporterFullFileName_.clear();
+void GlobalHandler::setDumpPath(const QString& path)
+{
+	QString absPath = path;
+	if(!QDir::isAbsolutePath(absPath)) {
+		// If program uses QtGui module, we can use QDesktopServices
+#		if defined(QT_GUI_LIB)
+			// this should be set for storageLocation
+			Q_ASSERT(!qApp->applicationName().isEmpty());
+			Q_ASSERT(!qApp->organizationName().isEmpty());
+			qDebug("BreakpadQt: %s", qPrintable(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + QLatin1String("/") + path));
+			absPath = QDir::cleanPath(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + QLatin1String("/") + path);
+#		else
+			absPath = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + path);
+#		endif
 
-		instance_ = 0;
+		qDebug("BreakpadQt: setDumpPath: %s -> %s", qPrintable(path), qPrintable(absPath));
 	}
+	Q_ASSERT(QDir::isAbsolutePath(absPath));
+
+	QDir().mkpath(absPath);
+	Q_ASSERT(QDir().exists(absPath));
+
+#	if defined(Q_OS_WIN32)
+		handler_->set_dump_path(absPath.toStdWString());
+#	else
+		handler_->set_dump_path(absPath.toStdString());
+#	endif
+}
+
+void GlobalHandler::setReporter(const QString& reporter)
+{
+	reporter_ = reporter;
+
+	if(!QDir::isAbsolutePath(reporter_)) {
+#		if defined(Q_OS_MAC)
+			// TODO(AlekSi) What to do if we are not inside bundle?
+			reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/../Resources/") + reporter_);
+#		elif defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+			// MAYBE(AlekSi) Better place for Linux? libexec? or what?
+			reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + reporter_);
+#		else
+			What is this?!
+#		endif
+
+		qDebug("BreakpadQt: setReporter: %s -> %s", qPrintable(reporter), qPrintable(reporter_));
+	}
+	Q_ASSERT(QDir::isAbsolutePath(reporter_));
+
+	// add .exe for Windows if needed
+#	if defined(Q_OS_WIN32)
+		if(!QDir().exists(reporter_)) {
+			reporter_ += QLatin1String(".exe");
+		}
+#	endif
+	Q_ASSERT(QDir().exists(reporter_));
 }
 
 bool GlobalHandler::writeMinidump()

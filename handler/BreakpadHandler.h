@@ -38,18 +38,19 @@ namespace BreakpadQt
 class GlobalHandler
 {
 public:
-	GlobalHandler(const QString& minidumpPath, const QString& reporter = QString());
-	~GlobalHandler();
-	static GlobalHandler* instance() { return instance_; }
+	static GlobalHandler* instance();
 
+	void setDumpPath(const QString& path);
+	void setReporter(const QString& reporter);
 	bool writeMinidump();
 
 private:
+	GlobalHandler();
+	~GlobalHandler();
 	GlobalHandler(const GlobalHandler&);
 	GlobalHandler& operator=(const GlobalHandler&);
 
 	static google_breakpad::ExceptionHandler* handler_;
-	static GlobalHandler* instance_;
 };
 
 }	// namespace
