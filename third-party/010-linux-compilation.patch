@@ -1,0 +1,48 @@
+diff --git src/client/linux/handler/exception_handler.cc src/client/linux/handler/exception_handler.cc
+index 26e09b7..c9144a9 100644
+--- src/client/linux/handler/exception_handler.cc
++++ src/client/linux/handler/exception_handler.cc
+@@ -37,6 +37,7 @@
+ #include <cassert>
+ #include <cstdlib>
+ #include <ctime>
++#include <cstring>
+ #include <linux/limits.h>
+ 
+ #include "client/linux/handler/exception_handler.h"
+diff --git src/processor/minidump_stackwalk.cc src/processor/minidump_stackwalk.cc
+index 05d9641..446d157 100644
+--- src/processor/minidump_stackwalk.cc
++++ src/processor/minidump_stackwalk.cc
+@@ -34,6 +34,7 @@
+ 
+ #include <cstdio>
+ #include <cstdlib>
++#include <cstring>
+ #include <string>
+ #include <vector>
+ 
+diff --git src/tools/linux/symupload/minidump_upload.cc src/tools/linux/symupload/minidump_upload.cc
+index cab6ad4..58fd118 100644
+--- src/tools/linux/symupload/minidump_upload.cc
++++ src/tools/linux/symupload/minidump_upload.cc
+@@ -34,6 +34,7 @@
+ //  symbol_file: the breakpad format symbol file
+ 
+ #include <unistd.h>
++#include <cstdlib>
+ 
+ #include <string>
+ 
+diff --git src/tools/linux/symupload/sym_upload.cc src/tools/linux/symupload/sym_upload.cc
+index 4e4da06..3e9ac12 100644
+--- src/tools/linux/symupload/sym_upload.cc
++++ src/tools/linux/symupload/sym_upload.cc
+@@ -41,6 +41,7 @@
+ 
+ #include <unistd.h>
+ 
++#include <cstdlib>
+ #include <cstdio>
+ #include <cassert>
+ #include <functional>
