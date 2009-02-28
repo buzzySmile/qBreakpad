@@ -32,6 +32,8 @@
 
 #include <cstdlib>
 #include <string>
+#include <iostream>
+#include <fstream>
 #include "google_breakpad/processor/basic_source_line_resolver.h"
 #include "google_breakpad/processor/call_stack.h"
 #include "google_breakpad/processor/code_module.h"
@@ -89,6 +91,11 @@ class TestSymbolSupplier : public SymbolSupplier {
                                      const SystemInfo *system_info,
                                      string *symbol_file);
 
+  virtual SymbolResult GetSymbolFile(const CodeModule *module,
+                                     const SystemInfo *system_info,
+                                     string *symbol_file,
+                                     string *symbol_data);
+
   // When set to true, causes the SymbolSupplier to return INTERRUPT
   void set_interrupt(bool interrupt) { interrupt_ = interrupt; }
 
@@ -121,6 +128,23 @@ SymbolSupplier::SymbolResult TestSymbolSupplier::GetSymbolFile(
   }
 
   return NOT_FOUND;
+}
+
+SymbolSupplier::SymbolResult TestSymbolSupplier::GetSymbolFile(
+    const CodeModule *module,
+    const SystemInfo *system_info,
+    string *symbol_file,
+    string *symbol_data) {
+  SymbolSupplier::SymbolResult s = GetSymbolFile(module, system_info,
+                                                 symbol_file);
+  if (s == FOUND) {
+    std::ifstream in(symbol_file->c_str());
+    std::getline(in, *symbol_data, std::string::traits_type::to_char_type(
+                     std::string::traits_type::eof()));
+    in.close();
+  }
+
+  return s;
 }
 
 static bool RunTests() {

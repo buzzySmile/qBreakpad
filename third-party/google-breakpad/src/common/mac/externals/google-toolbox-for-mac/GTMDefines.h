@@ -34,17 +34,6 @@
 // ----------------------------------------------------------------------------
 
 
-// GTMHTTPFetcher will support logging by default but only hook its input
-// stream support for logging when requested.  You can control the inclusion of
-// the code by providing your own definitions for these w/in a prefix header.
-//
-#ifndef GTM_HTTPFETCHER_ENABLE_LOGGING
-  #define GTM_HTTPFETCHER_ENABLE_LOGGING 1
-#endif // GTM_HTTPFETCHER_ENABLE_LOGGING
-#ifndef GTM_HTTPFETCHER_ENABLE_INPUTSTREAM_LOGGING
-  #define GTM_HTTPFETCHER_ENABLE_INPUTSTREAM_LOGGING 0
-#endif // GTM_HTTPFETCHER_ENABLE_INPUTSTREAM_LOGGING
-
 // By setting the GTM_CONTAINERS_VALIDATION_FAILED_LOG and 
 // GTM_CONTAINERS_VALIDATION_FAILED_ASSERT macros you can control what happens
 // when a validation fails. If you implement your own validators, you may want
@@ -119,15 +108,15 @@ GTM_EXTERN void _GTMUnitTestDevLog(NSString *format, ...);
 // we directly invoke the NSAssert handler so we can pass on the varargs
 // (NSAssert doesn't have a macro we can use that takes varargs)
 #if !defined(NS_BLOCK_ASSERTIONS)
-  #define _GTMDevAssert(condition, ...)                                    \
-    do {                                                                   \
-      if (!(condition)) {                                                  \
-        [[NSAssertionHandler currentHandler]                               \
-            handleFailureInFunction:[NSString stringWithCString:__PRETTY_FUNCTION__] \
-                               file:[NSString stringWithCString:__FILE__]  \
-                         lineNumber:__LINE__                               \
-                        description:__VA_ARGS__];                          \
-      }                                                                    \
+  #define _GTMDevAssert(condition, ...)                                       \
+    do {                                                                      \
+      if (!(condition)) {                                                     \
+        [[NSAssertionHandler currentHandler]                                  \
+            handleFailureInFunction:[NSString stringWithUTF8String:__PRETTY_FUNCTION__] \
+                               file:[NSString stringWithUTF8String:__FILE__]  \
+                         lineNumber:__LINE__                                  \
+                        description:__VA_ARGS__];                             \
+      }                                                                       \
     } while(0)
 #else // !defined(NS_BLOCK_ASSERTIONS)
   #define _GTMDevAssert(condition, ...) do { } while (0)

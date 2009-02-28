@@ -107,9 +107,9 @@ class SimpleSymbolSupplier : public SymbolSupplier {
                                      string *symbol_file);
 
   virtual SymbolResult GetSymbolFile(const CodeModule *module,
-                             const SystemInfo *system_info,
-                             string *symbol_file,
-                             string *symbol_data) { assert(0); }
+                                     const SystemInfo *system_info,
+                                     string *symbol_file,
+                                     string *symbol_data);
  protected:
   SymbolResult GetSymbolFileAtPathFromRoot(const CodeModule *module,
                                            const SystemInfo *system_info,
