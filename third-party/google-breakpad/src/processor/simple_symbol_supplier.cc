@@ -38,6 +38,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
+#include <fstream>
 
 #include "processor/simple_symbol_supplier.h"
 #include "google_breakpad/processor/code_module.h"
@@ -69,6 +71,25 @@ SymbolSupplier::SymbolResult SimpleSymbolSupplier::GetSymbolFile(
     }
   }
   return NOT_FOUND;
+}
+
+SymbolSupplier::SymbolResult SimpleSymbolSupplier::GetSymbolFile(
+    const CodeModule *module,
+    const SystemInfo *system_info,
+    string *symbol_file,
+    string *symbol_data) {
+  assert(symbol_data);
+  symbol_data->clear();
+
+  SymbolSupplier::SymbolResult s = GetSymbolFile(module, system_info, symbol_file);
+
+  if (s == FOUND) {
+    std::ifstream in(symbol_file->c_str());
+    std::getline(in, *symbol_data, std::string::traits_type::to_char_type(
+                     std::string::traits_type::eof()));
+    in.close();
+  }
+  return s;
 }
 
 SymbolSupplier::SymbolResult SimpleSymbolSupplier::GetSymbolFileAtPathFromRoot(

@@ -67,14 +67,14 @@ class SymbolSupplier {
                                      const SystemInfo *system_info,
                                      string *symbol_file) = 0;
   // Same as above, except also places symbol data into symbol_data.
-  // If symbol_data is NULL, the data is not returned.  
+  // If symbol_data is NULL, the data is not returned.
   // TODO(nealsid) Once we have symbol data caching behavior implemented
   // investigate making all symbol suppliers implement all methods,
   // and make this pure virtual
   virtual SymbolResult GetSymbolFile(const CodeModule *module,
                                      const SystemInfo *system_info,
                                      string *symbol_file,
-                                     string *symbol_data) { assert(0); }
+                                     string *symbol_data) = 0;
 };
 
 }  // namespace google_breakpad

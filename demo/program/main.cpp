@@ -11,8 +11,12 @@
 int main(int argc, char* argv[])
 {
 	QCoreApplication app(argc, argv);
-	BreakpadQt::GlobalHandler handler(app.applicationDirPath() + QLatin1String("/crashes"),
-										app.applicationDirPath() + QLatin1String("/../reporter/reporter"));
+	app.setApplicationName(QLatin1String("AppName"));
+	app.setApplicationVersion(QLatin1String("1.0"));
+	app.setOrganizationName(QLatin1String("OrgName"));
+	app.setOrganizationDomain(QLatin1String("name.org"));
+
+	BreakpadQt::GlobalHandler::instance()->setDumpPath(QLatin1String("crashes"));
 
 	qsrand(QDateTime::currentDateTime().toTime_t());
 	TestThread t1(false, qrand());
