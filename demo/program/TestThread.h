@@ -3,7 +3,7 @@
 #ifndef TESTTHREAD_H
 #define TESTTHREAD_H
 
-#include <QThread>
+#include <QtCore/QThread>
 
 class TestThread : public QThread
 {

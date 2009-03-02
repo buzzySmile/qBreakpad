@@ -29,7 +29,7 @@
 #ifndef BREAKPAD_HANDLER_H
 #define BREAKPAD_HANDLER_H
 
-#include <QString>
+#include <QtCore/QString>
 namespace google_breakpad { class ExceptionHandler; }
 
 namespace BreakpadQt

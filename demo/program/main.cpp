@@ -4,9 +4,9 @@
 
 #include <BreakpadHandler.h>
 
-#include <QCoreApplication>
-#include <QTimer>
-#include <QDateTime>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QTimer>
+#include <QtCore/QDateTime>
 
 int main(int argc, char* argv[])
 {

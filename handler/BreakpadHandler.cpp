@@ -28,11 +28,11 @@
 
 #include "BreakpadHandler.h"
 
-#include <QDir>
-#include <QProcess>
-#include <QCoreApplication>
+#include <QtCore/QDir>
+#include <QtCore/QProcess>
+#include <QtCore/QCoreApplication>
 #if defined(QT_GUI_LIB)
-#	include <QDesktopServices>
+#	include <QtGui/QDesktopServices>
 #endif
 
 #if defined(Q_OS_MAC)
