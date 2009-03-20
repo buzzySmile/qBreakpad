@@ -1,0 +1,5 @@
+config.log
+config.status
+
+*.o
+*.lo

@@ -1,5 +1,12 @@
-.svn
+# build
 Makefile*
 _build/
+lib*.a
+
+
+# qt creator
 qtc-gdbmacros/
 *.pro.user
+
+# mac stuff
+.DS_Store
