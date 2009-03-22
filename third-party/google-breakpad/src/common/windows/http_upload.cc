@@ -66,12 +66,13 @@ bool HTTPUpload::SendRequest(const wstring &url,
                              const map<wstring, wstring> &parameters,
                              const wstring &upload_file,
                              const wstring &file_part_name,
+                             int *timeout,
                              wstring *response_body,
                              int *response_code) {
   if (response_code) {
     *response_code = 0;
   }
-                               
+
   // TODO(bryner): support non-ASCII parameter names
   if (!CheckParameters(parameters)) {
     return false;
@@ -146,6 +147,22 @@ bool HTTPUpload::SendRequest(const wstring &url,
     return false;
   }
 
+  if (timeout) {
+    if (!InternetSetOption(request.get(),
+                           INTERNET_OPTION_SEND_TIMEOUT,
+                           timeout,
+                           sizeof(timeout))) {
+      fwprintf(stderr, L"Could not unset send timeout, continuing...\n");
+    }
+
+    if (!InternetSetOption(request.get(),
+                           INTERNET_OPTION_RECEIVE_TIMEOUT,
+                           timeout,
+                           sizeof(timeout))) {
+      fwprintf(stderr, L"Could not unset receive timeout, continuing...\n");
+    }
+  }
+  
   if (!HttpSendRequest(request.get(), NULL, 0,
                        const_cast<char *>(request_body.data()),
                        static_cast<DWORD>(request_body.size()))) {
