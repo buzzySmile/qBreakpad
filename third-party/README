@@ -1,1 +1,8 @@
+google-breakpad trunk:
 svn co http://google-breakpad.googlecode.com/svn/trunk/ google-breakpad
+
+create patch:
+svn diff > file.patch
+
+apply patch:
+patch -p0 < file.patch
