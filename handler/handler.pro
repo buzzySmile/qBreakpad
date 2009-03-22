@@ -12,9 +12,8 @@ MOC_DIR = _build
 DEFINES += QT_NO_CAST_TO_ASCII
 DEFINES += QT_NO_CAST_FROM_ASCII
 
-include($$PWD/../test-config.pri)
-
 ## breakpad-qt
+include($$PWD/../breakpad-qt-handler.pri)
 HEADERS += $$PWD/BreakpadHandler.h
 SOURCES += $$PWD/BreakpadHandler.cpp
 
@@ -48,11 +47,6 @@ mac {
 
 # other *nix
 unix:!mac {
-	debug {
-		# google-breakpad supports only stabs symbols on GNU/Linux and *BSD for now
-		QMAKE_CXXFLAGS_DEBUG +=-gstabs
-	}
-
 	SOURCES += $$BREAKPAD_PATH/client/linux/handler/exception_handler.cc \
 		$$BREAKPAD_PATH/client/linux/handler/minidump_generator.cc \
 		$$BREAKPAD_PATH/client/linux/handler/linux_thread.cc \
