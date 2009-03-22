@@ -35,6 +35,8 @@ namespace google_breakpad { class ExceptionHandler; }
 namespace BreakpadQt
 {
 
+class GlobalHandlerPrivate;
+
 class GlobalHandler
 {
 public:
@@ -47,10 +49,9 @@ public:
 private:
 	GlobalHandler();
 	~GlobalHandler();
-	GlobalHandler(const GlobalHandler&);
-	GlobalHandler& operator=(const GlobalHandler&);
+	Q_DISABLE_COPY(GlobalHandler)
 
-	static google_breakpad::ExceptionHandler* handler_;
+	GlobalHandlerPrivate* d;
 };
 
 }	// namespace

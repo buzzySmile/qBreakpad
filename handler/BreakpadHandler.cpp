@@ -46,7 +46,16 @@
 namespace BreakpadQt
 {
 
-static QString reporter_;
+class GlobalHandlerPrivate
+{
+public:
+	GlobalHandlerPrivate();
+	~GlobalHandlerPrivate();
+
+public:
+	static QString reporter_;
+	static google_breakpad::ExceptionHandler* handler_;
+};
 
 #if defined(Q_OS_WIN32)
 bool DumpCallback(const wchar_t* _dump_dir,
@@ -74,13 +83,25 @@ bool DumpCallback(const char* _dump_dir,
 		Creating QString's, using qDebug, etc. - everything is crash-unfriendly.
 	*/
 
-	if(!reporter_.isEmpty()) {
-		QProcess::startDetached(reporter_);	// very likely we will die there
+	if(!GlobalHandlerPrivate::reporter_.isEmpty()) {
+		QProcess::startDetached(GlobalHandlerPrivate::reporter_);	// very likely we will die there
 	}
 	return success;
 }
 
-google_breakpad::ExceptionHandler* GlobalHandler::handler_ = 0;
+
+GlobalHandlerPrivate::GlobalHandlerPrivate()
+{
+	handler_ = new google_breakpad::ExceptionHandler(/*DumpPath*/ "", /*FilterCallback*/ 0, DumpCallback, /*context*/ 0, true);
+	reporter_.clear();
+}
+
+GlobalHandlerPrivate::~GlobalHandlerPrivate()
+{
+	delete handler_;
+	handler_ = 0;
+}
+
 
 GlobalHandler* GlobalHandler::instance()
 {
@@ -90,14 +111,13 @@ GlobalHandler* GlobalHandler::instance()
 
 GlobalHandler::GlobalHandler()
 {
-	handler_ = new google_breakpad::ExceptionHandler(/*DumpPath*/ "", /*FilterCallback*/ 0, DumpCallback, /*context*/ 0, true);
-	reporter_.clear();
+	d = new GlobalHandlerPrivate();
 }
 
 GlobalHandler::~GlobalHandler()
 {
-	delete handler_;
-	handler_ = 0;
+	delete d;
+	d = 0;
 }
 
 void GlobalHandler::setDumpPath(const QString& path)
@@ -123,43 +143,43 @@ void GlobalHandler::setDumpPath(const QString& path)
 	Q_ASSERT(QDir().exists(absPath));
 
 #	if defined(Q_OS_WIN32)
-		handler_->set_dump_path(absPath.toStdWString());
+		d->handler_->set_dump_path(absPath.toStdWString());
 #	else
-		handler_->set_dump_path(absPath.toStdString());
+		d->handler_->set_dump_path(absPath.toStdString());
 #	endif
 }
 
 void GlobalHandler::setReporter(const QString& reporter)
 {
-	reporter_ = reporter;
+	d->reporter_ = reporter;
 
-	if(!QDir::isAbsolutePath(reporter_)) {
+	if(!QDir::isAbsolutePath(d->reporter_)) {
 #		if defined(Q_OS_MAC)
 			// TODO(AlekSi) What to do if we are not inside bundle?
-			reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/../Resources/") + reporter_);
+			d->reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/../Resources/") + d->reporter_);
 #		elif defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
 			// MAYBE(AlekSi) Better place for Linux? libexec? or what?
-			reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + reporter_);
+			d->reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + d->reporter_);
 #		else
 			What is this?!
 #		endif
 
-		qDebug("BreakpadQt: setReporter: %s -> %s", qPrintable(reporter), qPrintable(reporter_));
+		qDebug("BreakpadQt: setReporter: %s -> %s", qPrintable(reporter), qPrintable(d->reporter_));
 	}
-	Q_ASSERT(QDir::isAbsolutePath(reporter_));
+	Q_ASSERT(QDir::isAbsolutePath(d->reporter_));
 
 	// add .exe for Windows if needed
 #	if defined(Q_OS_WIN32)
-		if(!QDir().exists(reporter_)) {
-			reporter_ += QLatin1String(".exe");
+		if(!QDir().exists(impl_->reporter_)) {
+			d->reporter_ += QLatin1String(".exe");
 		}
 #	endif
-	Q_ASSERT(QDir().exists(reporter_));
+	Q_ASSERT(QDir().exists(d->reporter_));
 }
 
 bool GlobalHandler::writeMinidump()
 {
-	bool res = handler_->WriteMinidump();
+	bool res = d->handler_->WriteMinidump();
 	if (res) {
 		qDebug("BreakpadQt: writeMinidump() successed.");
 	} else {
