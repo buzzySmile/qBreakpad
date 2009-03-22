@@ -1,5 +1,4 @@
 # build
-Makefile*
 _build/
 lib*.a
 
