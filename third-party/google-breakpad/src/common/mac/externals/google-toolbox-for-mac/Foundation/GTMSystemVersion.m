@@ -19,7 +19,7 @@
 #import "GTMSystemVersion.h"
 #import "GTMGarbageCollection.h"
 #if GTM_MACOS_SDK
-#import <Carbon/Carbon.h>
+#import <CoreServices/CoreServices.h>
 #endif
 
 static SInt32 sGTMSystemVersionMajor = 0;
@@ -102,7 +102,7 @@ NSString *const kGTMSystemBuild10_6_0_10A190 = @"10A190";
   if (minor) {
     *minor = sGTMSystemVersionMinor;
   }
-  if (major) {
+  if (bugFix) {
     *bugFix = sGTMSystemVersionBugFix;
   }
 }

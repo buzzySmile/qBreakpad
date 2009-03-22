@@ -24,6 +24,13 @@
 @end
 
 @implementation GTMStackTraceTest
++ (BOOL)classMethodTest {
+  NSString *stacktrace = GTMStackTrace();
+  NSArray *stacklines = [stacktrace componentsSeparatedByString:@"\n"];
+  NSString *firstFrame = [stacklines objectAtIndex:0];
+  NSRange range = [firstFrame rangeOfString:@"+"];
+  return range.location != NSNotFound;
+}
 
 - (void)testStackTraceBasic {
   NSString *stacktrace = GTMStackTrace();
@@ -43,6 +50,37 @@
   STAssertNotEquals(range.location, (NSUInteger)NSNotFound,
                     @"First frame should contain #0, stack trace: %@", 
                     stacktrace);
+  
+  range = [firstFrame rangeOfString:@"-"];
+  STAssertNotEquals(range.location, (NSUInteger)NSNotFound,
+                    @"First frame should contain - since it's "
+                    @"an instance method: %@", stacktrace);
+  STAssertTrue([[self class] classMethodTest], @"First frame should contain"
+               @"+ since it's a class method");
+}
+
+-(void)testGetStackAddressDescriptors {
+  struct GTMAddressDescriptor descs[100];
+  size_t depth = sizeof(descs) / sizeof(struct GTMAddressDescriptor);
+  depth = GTMGetStackAddressDescriptors(descs, depth);
+  // Got atleast 4...
+  STAssertGreaterThan(depth, (size_t)4, nil);
+  // All that we got have symbols
+  for (NSUInteger lp = 0 ; lp < depth ; ++lp) {
+    STAssertNotNULL(descs[lp].symbol, @"didn't get a symble at depth %lu", lp);
+  }
+  
+  // Do it again, but don't give it enough space (to make sure it handles that)
+  size_t fullDepth = depth;
+  STAssertGreaterThan(fullDepth, (size_t)4, nil);
+  depth -= 2;
+  depth = GTMGetStackAddressDescriptors(descs, depth);
+  STAssertLessThan(depth, fullDepth, nil);
+  // All that we got have symbols
+  for (NSUInteger lp = 0 ; lp < depth ; ++lp) {
+    STAssertNotNULL(descs[lp].symbol, @"didn't get a symble at depth %lu", lp);
+  }
+  
 }
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5

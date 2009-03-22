@@ -23,7 +23,7 @@
 // been available since 10.0, but Apple didn't add it to the headers until 10.5
 #if MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4
 @interface NSMethodSignature (UndeclaredMethods)
-+ (NSMethodSignature *)signatureWithObjCTypes:(const char *)fp8;
++ (NSMethodSignature *)signatureWithObjCTypes:(const char *)types;
 @end
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4
 
@@ -89,6 +89,8 @@
 
 - (void)dealloc {
   [self releaseRealProxy];
+  [registeredName_ release];
+  [host_ release];
   [super dealloc];
 }
 
@@ -105,8 +107,10 @@
   mdesc = protocol_getMethodDescription(protocol_, selector, YES, YES);
   NSMethodSignature *returnValue = nil;
   if (mdesc.types == NULL) {
+    // COV_NF_START
     _GTMDevLog(@"Unable to get the protocol method description.  Returning "
                @"nil.");
+    // COV_NF_END
   } else {
     returnValue = [NSMethodSignature signatureWithObjCTypes:mdesc.types];
   }
@@ -133,13 +137,13 @@
         || [exName isEqualToString:NSFailedAuthenticationException]
         || [exName isEqualToString:NSPortSendException]
         || [exName isEqualToString:NSPortReceiveException]) {
-      [self releaseRealProxy];
+      [self releaseRealProxy];  // COV_NF_LINE
     } else {
       // If the exception was any other type (commonly
       // NSInvalidArgumentException) then we'll just re-throw it to the caller.
       @throw;
     }
-  }
+  }  // COV_NF_LINE
 }
 
 @end
@@ -158,7 +162,8 @@
     if (realProxy_) return realProxy_;
 
     NSConnection *conn = [self makeConnection];
-
+    [conn setRequestTimeout:requestTimeout_];
+    [conn setReplyTimeout:replyTimeout_];
     @try {
       // Try to get the root proxy for this connection's vended object.
       realProxy_ = [conn rootProxy];
@@ -167,9 +172,11 @@
       // specified by the timeout above.  This may happen, for example, if the
       // server process is stopped (via SIGSTOP).  We'll just ignore this, and
       // try again at the next message.
+      [conn invalidate];
       return nil;
     }
     if (!realProxy_) {
+      [conn invalidate];
       // Again, no change in connection status
       return nil;
     }

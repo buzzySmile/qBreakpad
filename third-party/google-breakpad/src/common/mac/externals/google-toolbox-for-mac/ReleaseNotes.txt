@@ -232,16 +232,35 @@ Changes since 1.5.1
 - Fixed up GTMSenTestCase on iPhone so that it has a description that matches
   that of OCUnit.
 
-- Added GTMAbstractDOListener, GTMTransientRootProxy, and
-  GTMTransientRootSocketProxy.  These classes can be used to simplify the
+- Added GTMAbstractDOListener, GTMTransientRootProxy, and 
+  GTMTransientRootPortProxy.  These classes can be used to simplify the
   use of distributed objects.  GTMAbstractDOListener can be used to handle
   connections from any type of port.  GTMTransientRootProxy is designed for
-  NSMachPorts while GTMTransientRootSocketProxy is for NSSocketPorts.
+  using named connections while GTMTransientRootPortProxy is for connections 
+  with supplied NSPorts.
 
 - Finally dropped GTMHTTPFetcher and GTMProgressMonitorInputStream, GData
   versions now pretty much line up w/ these, so rather then both projects
   maintaing them, we've dropped them and point folks at the gdata versions
   which can be used independent of the rest of GData.
+
+- Changed gtm_createCGPath to gtm_cgPath in GTMNSBezier+CGPath. The path
+  returned is now autoreleased so you don't need to worry about releasing it.
+
+- Made some changes to the GTMNSObject+UnitTesting APIs. Specifically renamed
+  gtm_createUnitTestImage to gtm_unitTestImage. The value it returns is now
+  autoreleased, so no need to release it. Also change 
+  gtm_createUnitTestBitmapOfSize:withData: to a C function.
+  
+- Cleaned up GTM so that it passes the Clang checker without any warnings.
+
+- Added GTMLuminance for working with colors in HSL space easily.
+
+- Added GTMTheme for doing product wide theme modifications.
+
+- The Run*UnitTest.sh script now support an env var to have them delete the
+  current target/configs *.gcda files to avoid coverage data warning when you
+  edit source.
 
 
 Release 1.5.1

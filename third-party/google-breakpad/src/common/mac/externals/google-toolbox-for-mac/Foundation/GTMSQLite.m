@@ -172,7 +172,7 @@ static CFLocaleRef gCurrentLocale = NULL;
       rc = sqlite3_open([path_ fileSystemRepresentation], &db_);
     } else {
       CFStringEncoding cfEncoding;
-#if __BIG_ENDIAN__
+#if TARGET_RT_BIG_ENDIAN
       cfEncoding = kCFStringEncodingUTF16BE;
 #else
       cfEncoding = kCFStringEncodingUTF16LE;
@@ -240,11 +240,10 @@ static CFLocaleRef gCurrentLocale = NULL;
   if (db_) {
     int rc = sqlite3_close(db_);
     if (rc != SQLITE_OK) {
-      // COV_NF_START
-      _GTMDevLog(@"Unable to close \"%@\", error code: %d", self, rc);
-      _GTMDevLog(@"Did you forget to call -[GTMSQLiteStatement"
-                 @" finalizeStatement] on one of your statements?");
-      // COV_NF_END
+      _GTMDevLog(@"Unable to close \"%@\", error code: %d\r"
+                 @"Did you forget to call -[GTMSQLiteStatement"
+                 @" finalizeStatement] on one of your statements?",
+                 self, rc);
     }
   }
   [path_ release];
@@ -984,12 +983,10 @@ static int Collate16(void *userContext, int length1, const void *str1,
   // we must.
   CFStringRef string1 = NULL, string2 = NULL;
   if ((userArgs->textRep == SQLITE_UTF16) ||
-#if defined __BIG_ENDIAN__
+#if TARGET_RT_BIG_ENDIAN
       (userArgs->textRep == SQLITE_UTF16BE)
-#elif defined __LITTLE_ENDIAN__
-      (userArgs->textRep == SQLITE_UTF16LE)
 #else
-#error Not big or little endian?
+      (userArgs->textRep == SQLITE_UTF16LE)
 #endif
   ) {
     string1 = CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault,
@@ -1286,24 +1283,20 @@ static void LikeGlobCompare(sqlite3_context *context,
            !((patternChar == matchAll) || (patternChar == matchOne) ||
            (setSupport && (patternChar == 0x5B)))) {  // "["
       if (patternChar == escape) {
-        // COV_NF_START - this code doesn't appear to be hittable
-        // setSupport implies that the escape char is NULL
-        // additionally, setSupport implies GLOB, and running a GLOB
-        // query with an escape clause appears to not work in SQLITE3
-        // when I tried it from the command line
         // No matter what the character follows the escape copy it to the
         // buffer
         patternIndex++;
         if (patternIndex >= patternLength) {
+          // COV_NF_START
           // Oops, escape came at end of pattern, that's an error
           sqlite3_result_error(context,
                                "LIKE or GLOB CF implementation found " \
                                "escape character at end of pattern", -1);
           return;
+          // COV_NF_END
         }
         patternChar = CFStringGetCharacterFromInlineBuffer(&patternBuffer,
                                                            patternIndex);
-        // COV_NF_END
       }
       // At this point the patternChar is either the escaped character or the
       // original normal character
@@ -1385,9 +1378,11 @@ static void Like8(sqlite3_context *context, int argc, sqlite3_value **argv) {
   const char *pattern = (const char *)sqlite3_value_text(argv[0]);
   const char *target = (const char *)sqlite3_value_text(argv[1]);
   if (!pattern || !target) {
+    // COV_NF_START
     sqlite3_result_error(context,
                          "LIKE CF implementation missing pattern or value", -1);
     return;
+    // COV_NF_END
   }
   CFStringRef patternString =
     CFStringCreateWithCStringNoCopy(kCFAllocatorDefault,
@@ -1475,9 +1470,11 @@ static void Like16(sqlite3_context *context, int argc, sqlite3_value **argv) {
   int targetByteCount = sqlite3_value_bytes16(argv[1]);
   const UniChar *targetText = (void *)sqlite3_value_text16(argv[1]);
   if (!patternByteCount || !patternText || !targetByteCount || !targetText) {
+    // COV_NF_START
     sqlite3_result_error(context,
                          "LIKE CF implementation missing pattern or value", -1);
     return;
+    // COV_NF_END
   }
   CFStringRef patternString =
     CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault,
@@ -1721,17 +1718,19 @@ static void Glob16(sqlite3_context *context, int argc, sqlite3_value **argv) {
 
 #if GTM_SUPPORT_GC
 - (void)finalize {
-  _GTMDevAssert(!statement_,
-                @"-[GTMSQLiteStatement finalizeStatement] must be called when"
-                @" statement is no longer needed");
+  if (statement_) {
+    _GTMDevLog(@"-[GTMSQLiteStatement finalizeStatement] must be called when"
+               @" statement is no longer needed");
+  }
   [super finalize];
 }
 #endif
 
 - (void)dealloc {
-  _GTMDevAssert(!statement_,
-                @"-[GTMSQLiteStatement finalizeStatement] must be called when"
-                @" statement is no longer needed");
+  if (statement_) {
+    _GTMDevLog(@"-[GTMSQLiteStatement finalizeStatement] must be called when"
+               @" statement is no longer needed");
+  }
   [super dealloc];
 }
 
