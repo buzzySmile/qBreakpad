@@ -2,7 +2,7 @@ TEMPLATE = lib
 TARGET = $$PWD/../breakpad-qt-sender
 VERSION = 0.3.0
 
-CONFIG += static debug_and_release warn_on
+CONFIG += shared debug_and_release warn_on
 QT -= gui
 QT += network
 
