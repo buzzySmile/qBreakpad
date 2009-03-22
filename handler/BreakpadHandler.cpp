@@ -49,7 +49,7 @@ namespace BreakpadQt
 static QString reporter_;
 
 #if defined(Q_OS_WIN32)
-bool MDCallback(const wchar_t* _dump_dir,
+bool DumpCallback(const wchar_t* _dump_dir,
 				const wchar_t* _minidump_id,
 				void* context,
 				EXCEPTION_POINTERS* exinfo,
