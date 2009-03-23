@@ -57,6 +57,10 @@ public:
 	static google_breakpad::ExceptionHandler* handler_;
 };
 
+QString GlobalHandlerPrivate::reporter_ = QString();
+google_breakpad::ExceptionHandler* GlobalHandlerPrivate::handler_ = 0;
+
+
 #if defined(Q_OS_WIN32)
 bool DumpCallback(const wchar_t* _dump_dir,
 				const wchar_t* _minidump_id,
