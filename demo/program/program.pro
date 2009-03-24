@@ -10,7 +10,8 @@ SOURCES += TestThread.cpp
 
 SOURCES += main.cpp
 
-include($$PWD/../../breakpad-handler.pri)
+include($$PWD/../../breakpad-qt-handler.pri)
+LIBS += -L$$PWD/../../ -lbreakpad-qt-handler
 
 OBJECTS_DIR = _build/obj
 MOC_DIR = _build

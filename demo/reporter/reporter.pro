@@ -2,12 +2,13 @@ TEMPLATE = app
 TARGET = reporter
 QT += network
 CONFIG -= app_bundle
-CONFIG += debug_and_release warn_on
+CONFIG += debug_and_release warn_on console
 CONFIG += thread exceptions rtti stl
 
 SOURCES += main.cpp
 
-include($$PWD/../../breakpad-sender.pri)
+include($$PWD/../../breakpad-qt-sender.pri)
+LIBS += -L$$PWD/../../ -lbreakpad-qt-sender
 
 OBJECTS_DIR = _build/obj
 MOC_DIR = _build

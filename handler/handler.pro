@@ -14,7 +14,6 @@ DEFINES += QT_NO_CAST_FROM_ASCII
 
 ## breakpad-qt
 include($$PWD/../breakpad-qt-handler.pri)
-HEADERS += $$PWD/BreakpadHandler.h
 SOURCES += $$PWD/BreakpadHandler.cpp
 
 ## google-breakpad

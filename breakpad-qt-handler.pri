@@ -12,3 +12,6 @@ for(f, LIST) {
 		warning("Add '$$f' to CONFIG, or you will find yourself in 'funny' problems.")
 	}
 }
+
+INCLUDEPATH += $$PWD/handler/
+HEADERS += $$PWD/handler/BreakpadHandler.h
