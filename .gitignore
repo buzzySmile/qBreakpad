@@ -1,6 +1,6 @@
 # build
 _build/
-lib*.a
+lib*.so*
 
 
 # qt creator

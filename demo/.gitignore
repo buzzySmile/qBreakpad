@@ -5,3 +5,6 @@ program/test.exe
 
 reporter/reporter
 reporter/reporter.exe
+
+Makefile*
+*.pro.user
