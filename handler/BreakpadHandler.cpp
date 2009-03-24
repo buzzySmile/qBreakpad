@@ -129,6 +129,7 @@ void GlobalHandler::setDumpPath(const QString& path)
 	QString absPath = path;
 	if(!QDir::isAbsolutePath(absPath)) {
 		// If program uses QtGui module, we can use QDesktopServices
+		//FIXME (AlekSi) this doesn't works anymore - it's a library without QtGui
 #		if defined(QT_GUI_LIB)
 			// this should be set for storageLocation
 			Q_ASSERT(!qApp->applicationName().isEmpty());
