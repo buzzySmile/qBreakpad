@@ -1,2 +1,2 @@
 TEMPLATE = subdirs
-SUBDIRS += handler sender
+SUBDIRS += handler sender tests tools

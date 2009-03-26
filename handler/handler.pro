@@ -17,8 +17,7 @@ include($$PWD/../breakpad-qt-handler.pri)
 SOURCES += $$PWD/BreakpadHandler.cpp
 
 ## google-breakpad
-BREAKPAD_PATH = $$PWD/../third-party/google-breakpad/src
-INCLUDEPATH += $$BREAKPAD_PATH
+include($$PWD/../google-breakpad.pri)
 
 # every *nix
 unix {
