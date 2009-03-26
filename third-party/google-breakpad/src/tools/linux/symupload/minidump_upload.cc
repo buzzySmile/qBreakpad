@@ -34,8 +34,8 @@
 //  symbol_file: the breakpad format symbol file
 
 #include <unistd.h>
-#include <cstdlib>
 
+#include <cstdlib>
 #include <string>
 
 #include "common/linux/http_upload.h"

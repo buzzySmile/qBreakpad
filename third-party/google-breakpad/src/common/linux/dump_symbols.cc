@@ -30,6 +30,7 @@
 #include <a.out.h>
 #include <cstdarg>
 #include <cstdlib>
+#include <cstdio>
 #include <cxxabi.h>
 #include <elf.h>
 #include <errno.h>
