@@ -1,4 +1,4 @@
-// Copyright (c) 2006, Google Inc.
+// Copyright (c) 2007, Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,40 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Main driver for Inspector
 
-#include <unistd.h>
+#import "client/mac/crash_generation/Inspector.h"
+#import <Cocoa/Cocoa.h>
 
-#include <pthread.h>
-#include <pwd.h>
+namespace google_breakpad {
 
-#include <CoreFoundation/CoreFoundation.h>
+//=============================================================================
+extern "C" {
 
-#include "minidump_generator.h"
-#include "minidump_file_writer.h"
+int main(int argc, char *const argv[]) {
+#if DEBUG
+  // Since we're launched on-demand, this is necessary to see debugging
+  // output in the console window.
+  freopen("/dev/console", "w", stdout);
+  freopen("/dev/console", "w", stderr);
+#endif
 
-using std::string;
-using google_breakpad::MinidumpGenerator;
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-static bool doneWritingReport = false;
-
-static void *Reporter(void *) {
-  char buffer[PATH_MAX];
-  MinidumpGenerator md;
-
-  // Write it to the desktop
-  snprintf(buffer,
-           sizeof(buffer),
-           "/tmp/test.dmp");
-
-
-  fprintf(stdout, "Writing %s\n", buffer);
-  unlink(buffer);
-  md.Write(buffer);
-  doneWritingReport = true;
-
-  return NULL;
-}
-
-static void SleepyFunction() {
-  while (!doneWritingReport) {
-    usleep(100);
+  if (argc != 2) {
+    exit(0);
   }
-}
+  // Our first command-line argument contains the name of the service
+  // that we're providing.
+  google_breakpad::Inspector inspector;
+  inspector.Inspect(argv[1]);
 
-int main(int argc, char * const argv[]) {
-  pthread_t reporter_thread;
-
-  if (pthread_create(&reporter_thread, NULL, Reporter, NULL) == 0) {
-    pthread_detach(reporter_thread);
-  } else {
-    perror("pthread_create");
-  }
-
-  SleepyFunction();
+  [pool release];
 
   return 0;
 }
+
+} // extern "C"
+
+} // namespace google_breakpad

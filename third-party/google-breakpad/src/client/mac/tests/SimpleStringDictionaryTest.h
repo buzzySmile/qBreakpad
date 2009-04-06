@@ -1,4 +1,4 @@
-// Copyright (c) 2006, Google Inc.
+// Copyright (c) 2008, Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,55 +27,14 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <unistd.h>
+#import <GTMSenTestCase.h>
+#import "SimpleStringDictionary.h"
 
-#include <pthread.h>
-#include <pwd.h>
+@interface SimpleStringDictionaryTest : GTMTestCase {
 
-#include <CoreFoundation/CoreFoundation.h>
-
-#include "minidump_generator.h"
-#include "minidump_file_writer.h"
-
-using std::string;
-using google_breakpad::MinidumpGenerator;
-
-static bool doneWritingReport = false;
-
-static void *Reporter(void *) {
-  char buffer[PATH_MAX];
-  MinidumpGenerator md;
-
-  // Write it to the desktop
-  snprintf(buffer,
-           sizeof(buffer),
-           "/tmp/test.dmp");
-
-
-  fprintf(stdout, "Writing %s\n", buffer);
-  unlink(buffer);
-  md.Write(buffer);
-  doneWritingReport = true;
-
-  return NULL;
 }
 
-static void SleepyFunction() {
-  while (!doneWritingReport) {
-    usleep(100);
-  }
-}
-
-int main(int argc, char * const argv[]) {
-  pthread_t reporter_thread;
-
-  if (pthread_create(&reporter_thread, NULL, Reporter, NULL) == 0) {
-    pthread_detach(reporter_thread);
-  } else {
-    perror("pthread_create");
-  }
-
-  SleepyFunction();
-
-  return 0;
-}
+- (void)testKeyValueEntry;
+- (void)testSimpleStringDictionary;
+- (void)testSimpleStringDictionaryIterator;
+@end

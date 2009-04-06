@@ -55,6 +55,7 @@ static void *SleepyFunction(void *) {
   while (1) {
     sleep(10000);
   }
+  return NULL;
 }
 
 static void Crasher() {
@@ -77,15 +78,14 @@ bool MDCallback(const char *dump_dir, const char *file_name,
 
   fprintf(stdout, "Minidump: %s\n", path.c_str());
   // Indicate that we've handled the callback
-  return true;
+  exit(0);
 }
 
 int main(int argc, char * const argv[]) {
   char buffer[PATH_MAX];
-  struct passwd *user = getpwuid(getuid());
 
   // Home dir
-  snprintf(buffer, sizeof(buffer), "/Users/%s/Desktop/", user->pw_name);
+  snprintf(buffer, sizeof(buffer), "/tmp/");
 
   string path(buffer);
   ExceptionHandler eh(path, NULL, MDCallback, NULL, true);
@@ -97,8 +97,8 @@ int main(int argc, char * const argv[]) {
     perror("pthread_create");
   }
 
-  // Dump a test
-  eh.WriteMinidump();
+//   // Dump a test
+//   eh.WriteMinidump();
 
 	// Test the handler
   SoonToCrash();

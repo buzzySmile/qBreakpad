@@ -29,53 +29,67 @@
 
 #include <unistd.h>
 
-#include <pthread.h>
-#include <pwd.h>
+#import "TestClass.h"
 
-#include <CoreFoundation/CoreFoundation.h>
+struct AStruct {
+  int x;
+  float y;
+  double z;
+};
 
-#include "minidump_generator.h"
-#include "minidump_file_writer.h"
+class InternalTestClass {
+ public:
+  InternalTestClass(int a) : a_(a) {}
+  ~InternalTestClass() {}
 
-using std::string;
-using google_breakpad::MinidumpGenerator;
+  void snooze(float a);
+  void snooze(int a);
+  int snooze(int a, float b);
 
-static bool doneWritingReport = false;
+ protected:
+  int a_;
+  AStruct s_;
 
-static void *Reporter(void *) {
-  char buffer[PATH_MAX];
-  MinidumpGenerator md;
+  static void InternalFunction(AStruct &s);
+  static float kStaticFloatValue;
+};
 
-  // Write it to the desktop
-  snprintf(buffer,
-           sizeof(buffer),
-           "/tmp/test.dmp");
-
-
-  fprintf(stdout, "Writing %s\n", buffer);
-  unlink(buffer);
-  md.Write(buffer);
-  doneWritingReport = true;
-
-  return NULL;
+void InternalTestClass::snooze(float a) {
+  InternalFunction(s_);
+  sleep(a_ * a);
 }
 
-static void SleepyFunction() {
-  while (!doneWritingReport) {
-    usleep(100);
+void InternalTestClass::snooze(int a) {
+  InternalFunction(s_);
+  sleep(a_ * a);
+}
+
+int InternalTestClass::snooze(int a, float b) {
+  InternalFunction(s_);
+  sleep(a_ * a * b);
+
+  return 33;
+}
+
+void InternalTestClass::InternalFunction(AStruct &s) {
+  s.x = InternalTestClass::kStaticFloatValue;
+}
+
+float InternalTestClass::kStaticFloatValue = 42;
+
+static float PlainOldFunction() {
+  return 3.14145;
+}
+
+@implementation TestClass
+
+- (void)wait {
+  InternalTestClass t(10);
+  float z = PlainOldFunction();
+
+  while (1) {
+    t.snooze(z);
   }
 }
 
-int main(int argc, char * const argv[]) {
-  pthread_t reporter_thread;
-
-  if (pthread_create(&reporter_thread, NULL, Reporter, NULL) == 0) {
-    pthread_detach(reporter_thread);
-  } else {
-    perror("pthread_create");
-  }
-
-  SleepyFunction();
-
-  return 0;
-}
+@end

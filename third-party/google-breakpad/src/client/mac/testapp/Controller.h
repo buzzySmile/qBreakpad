@@ -27,55 +27,39 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <unistd.h>
+#import <Cocoa/Cocoa.h>
 
-#include <pthread.h>
-#include <pwd.h>
+#import <Breakpad/Breakpad.h>
 
-#include <CoreFoundation/CoreFoundation.h>
+enum BreakpadForkBehavior {
+  DONOTHING = 0,
+  UNINSTALL,
+  RESETEXCEPTIONPORT
+};
 
-#include "minidump_generator.h"
-#include "minidump_file_writer.h"
+enum BreakpadForkTestCrashPoint {
+  DURINGLAUNCH = 5,
+  AFTERLAUNCH = 6,
+  BETWEENFORKEXEC = 7
+};
 
-using std::string;
-using google_breakpad::MinidumpGenerator;
+@interface Controller : NSObject {
+  IBOutlet NSWindow *window_;
+  IBOutlet NSWindow *forkTestOptions_;
 
-static bool doneWritingReport = false;
+  BreakpadRef breakpad_;
 
-static void *Reporter(void *) {
-  char buffer[PATH_MAX];
-  MinidumpGenerator md;
+  enum BreakpadForkBehavior bpForkOption;
 
-  // Write it to the desktop
-  snprintf(buffer,
-           sizeof(buffer),
-           "/tmp/test.dmp");
-
-
-  fprintf(stdout, "Writing %s\n", buffer);
-  unlink(buffer);
-  md.Write(buffer);
-  doneWritingReport = true;
-
-  return NULL;
+  BOOL useVFork;
+  enum BreakpadForkTestCrashPoint progCrashPoint;
 }
 
-static void SleepyFunction() {
-  while (!doneWritingReport) {
-    usleep(100);
-  }
-}
+- (IBAction)crash:(id)sender;
+- (IBAction)forkTestOptions:(id)sender;
+- (IBAction)forkTestGo:(id)sender;
+- (IBAction)showForkTestWindow:(id) sender;
+- (void)generateReportWithoutCrash:(id)sender;
+- (void)awakeFromNib;
 
-int main(int argc, char * const argv[]) {
-  pthread_t reporter_thread;
-
-  if (pthread_create(&reporter_thread, NULL, Reporter, NULL) == 0) {
-    pthread_detach(reporter_thread);
-  } else {
-    perror("pthread_create");
-  }
-
-  SleepyFunction();
-
-  return 0;
-}
+@end
