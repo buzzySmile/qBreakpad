@@ -31,9 +31,6 @@
 #include <QtCore/QDir>
 #include <QtCore/QProcess>
 #include <QtCore/QCoreApplication>
-#if defined(QT_GUI_LIB)
-#	include <QtGui/QDesktopServices>
-#endif
 
 #if defined(Q_OS_MAC)
 #include "client/mac/handler/exception_handler.h"
@@ -128,18 +125,7 @@ void GlobalHandler::setDumpPath(const QString& path)
 {
 	QString absPath = path;
 	if(!QDir::isAbsolutePath(absPath)) {
-		// If program uses QtGui module, we can use QDesktopServices
-		//FIXME (AlekSi) this doesn't works anymore - it's a library without QtGui
-#		if defined(QT_GUI_LIB)
-			// this should be set for storageLocation
-			Q_ASSERT(!qApp->applicationName().isEmpty());
-			Q_ASSERT(!qApp->organizationName().isEmpty());
-			qDebug("BreakpadQt: %s", qPrintable(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + QLatin1String("/") + path));
-			absPath = QDir::cleanPath(QDesktopServices::storageLocation(QDesktopServices::DataLocation) + QLatin1String("/") + path);
-#		else
-			absPath = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + path);
-#		endif
-
+		absPath = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + path);
 		qDebug("BreakpadQt: setDumpPath: %s -> %s", qPrintable(path), qPrintable(absPath));
 	}
 	Q_ASSERT(QDir::isAbsolutePath(absPath));
