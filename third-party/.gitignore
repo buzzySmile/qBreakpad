@@ -7,3 +7,4 @@ lib*.la
 .deps
 config.log
 config.status
+config.h

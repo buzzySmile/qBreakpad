@@ -354,7 +354,7 @@ const int kMinidumpFileLengthLimit = 800000;
   [self setHeaderMessage:[NSString stringWithFormat:
                           NSLocalizedStringFromTableInBundle(@"headerFmt", nil,
                                                              bundle,
-                                                             @""), vendor, display]];
+                                                             @""), display]];
   NSString *defaultButtonTitle = nil;
   NSString *otherButtonTitle = nil;
   NSTimeInterval timeout = 60.0;  // timeout value for the user notification
@@ -636,11 +636,13 @@ const int kMinidumpFileLengthLimit = 800000;
                                          encoding:NSUTF8StringEncoding];
     const char *reportID = "ERR";
 
-    if (error)
+    if (error) {
       fprintf(stderr, "Breakpad Reporter: Send Error: %s\n",
               [[error description] UTF8String]);
-    else
-      reportID = [result UTF8String];
+    } else {
+      NSCharacterSet *trimSet = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+      reportID = [[result stringByTrimmingCharactersInSet:trimSet] UTF8String];
+    }
 
     // rename the minidump file according to the id returned from the server
     NSString *minidumpDir = [parameters_ objectForKey:@kReporterMinidumpDirectoryKey];

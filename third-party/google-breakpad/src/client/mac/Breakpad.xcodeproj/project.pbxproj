@@ -85,7 +85,6 @@
 		F93DE33F0F82C66B00608B94 /* string_utilities.cc in Sources */ = {isa = PBXBuildFile; fileRef = F92C53820ECCE635009BE4BA /* string_utilities.cc */; };
 		F93DE3410F82C68300608B94 /* exception_handler_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = F93DE3400F82C68300608B94 /* exception_handler_test.cc */; };
 		F945849E0F280E3C009A47BF /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F945849C0F280E3C009A47BF /* Localizable.strings */; };
-		F9C444530F7981E600991B96 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = F9C444510F7981E600991B96 /* InfoPlist.strings */; };
 		F9C44DB20EF07288003AEBAA /* Controller.m in Sources */ = {isa = PBXBuildFile; fileRef = F9C44DAC0EF07288003AEBAA /* Controller.m */; };
 		F9C44DB30EF07288003AEBAA /* crashduringload in Resources */ = {isa = PBXBuildFile; fileRef = F9C44DAD0EF07288003AEBAA /* crashduringload */; };
 		F9C44DB40EF07288003AEBAA /* crashInMain in Resources */ = {isa = PBXBuildFile; fileRef = F9C44DAE0EF07288003AEBAA /* crashInMain */; };
@@ -273,7 +272,7 @@
 		F92C56320ECD0DF1009BE4BA /* OnDemandServer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = OnDemandServer.mm; path = Framework/OnDemandServer.mm; sourceTree = "<group>"; };
 		F92C563C0ECD10B3009BE4BA /* breakpadUtilities.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = breakpadUtilities.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		F92C56A00ECE04A7009BE4BA /* crash_report_sender.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = crash_report_sender.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F92C56A20ECE04A7009BE4BA /* crash_report_sender-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "crash_report_sender-Info.plist"; path = "sender/crash_report_sender-Info.plist"; sourceTree = "<group>"; };
+		F92C56A20ECE04A7009BE4BA /* crash_report_sender-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "crash_report_sender-Info.plist"; path = "sender/crash_report_sender-Info.plist"; sourceTree = "<group>"; };
 		F92C56A70ECE04C5009BE4BA /* crash_report_sender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crash_report_sender.h; path = sender/crash_report_sender.h; sourceTree = "<group>"; };
 		F92C56A80ECE04C5009BE4BA /* crash_report_sender.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = crash_report_sender.m; path = sender/crash_report_sender.m; sourceTree = "<group>"; };
 		F93803BE0F80820F004D428B /* generator_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = generator_test; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -283,13 +282,12 @@
 		F93DE32C0F82C55600608B94 /* handler_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = handler_test; sourceTree = BUILT_PRODUCTS_DIR; };
 		F93DE3400F82C68300608B94 /* exception_handler_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = exception_handler_test.cc; path = handler/exception_handler_test.cc; sourceTree = "<group>"; };
 		F945849D0F280E3C009A47BF /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = sender/English.lproj/Localizable.strings; sourceTree = "<group>"; };
-		F945859D0F78241E009A47BF /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Framework/Info.plist; sourceTree = "<group>"; };
-		F9C444520F7981E600991B96 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = Framework/English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		F945859D0F78241E009A47BF /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = Info.plist; path = Framework/Info.plist; sourceTree = "<group>"; };
 		F9C44DA50EF060A8003AEBAA /* BreakpadTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BreakpadTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F9C44DAC0EF07288003AEBAA /* Controller.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Controller.m; path = testapp/Controller.m; sourceTree = "<group>"; };
 		F9C44DAD0EF07288003AEBAA /* crashduringload */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = crashduringload; path = testapp/crashduringload; sourceTree = "<group>"; };
 		F9C44DAE0EF07288003AEBAA /* crashInMain */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = crashInMain; path = testapp/crashInMain; sourceTree = "<group>"; };
-		F9C44DAF0EF07288003AEBAA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = testapp/Info.plist; sourceTree = "<group>"; };
+		F9C44DAF0EF07288003AEBAA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = Info.plist; path = testapp/Info.plist; sourceTree = "<group>"; };
 		F9C44DB00EF07288003AEBAA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = testapp/main.m; sourceTree = "<group>"; };
 		F9C44DB10EF07288003AEBAA /* TestClass.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = TestClass.mm; path = testapp/TestClass.mm; sourceTree = "<group>"; };
 		F9C44DB90EF072A0003AEBAA /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = testapp/English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -300,7 +298,7 @@
 		F9C44EE70EF0A3C1003AEBAA /* GTMLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTMLogger.h; path = ../../common/mac/GTMLogger.h; sourceTree = SOURCE_ROOT; };
 		F9C44EE80EF0A3C1003AEBAA /* GTMLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GTMLogger.m; path = ../../common/mac/GTMLogger.m; sourceTree = SOURCE_ROOT; };
 		F9C77DDA0F7DD5CF0045F7DB /* UnitTests.octest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UnitTests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
-		F9C77DDB0F7DD5CF0045F7DB /* UnitTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "UnitTests-Info.plist"; sourceTree = "<group>"; };
+		F9C77DDB0F7DD5CF0045F7DB /* UnitTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "UnitTests-Info.plist"; sourceTree = "<group>"; };
 		F9C77DE00F7DD7E30045F7DB /* SimpleStringDictionaryTest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SimpleStringDictionaryTest.h; path = tests/SimpleStringDictionaryTest.h; sourceTree = "<group>"; };
 		F9C77DE10F7DD7E30045F7DB /* SimpleStringDictionaryTest.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SimpleStringDictionaryTest.mm; path = tests/SimpleStringDictionaryTest.mm; sourceTree = "<group>"; };
 		F9C77E110F7DDF810045F7DB /* GTMSenTestCase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTMSenTestCase.h; path = ../../common/mac/testing/GTMSenTestCase.h; sourceTree = SOURCE_ROOT; };
@@ -519,7 +517,6 @@
 		F92C55CD0ECD0053009BE4BA /* Framework */ = {
 			isa = PBXGroup;
 			children = (
-				F9C444510F7981E600991B96 /* InfoPlist.strings */,
 				F945859D0F78241E009A47BF /* Info.plist */,
 				F92C56310ECD0DF1009BE4BA /* OnDemandServer.h */,
 				F92C56320ECD0DF1009BE4BA /* OnDemandServer.mm */,
@@ -797,7 +794,6 @@
 				F9C44E980EF09F56003AEBAA /* crash_report_sender.app in Resources */,
 				F92C568A0ECD15F9009BE4BA /* Inspector in Resources */,
 				F92C56650ECD1185009BE4BA /* breakpadUtilities.dylib in Resources */,
-				F9C444530F7981E600991B96 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1084,14 +1080,6 @@
 				F945849D0F280E3C009A47BF /* English */,
 			);
 			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
-		F9C444510F7981E600991B96 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				F9C444520F7981E600991B96 /* English */,
-			);
-			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 		F9C44DB80EF072A0003AEBAA /* InfoPlist.strings */ = {

@@ -111,8 +111,8 @@ typedef bool (*BreakpadFilterCallback)(int exception_type,
 //                                as metadata for crash report
 //                                REQUIRED
 //
-// BREAKPAD_VENDOR                Vendor named, used in UI (e.g. the Xxxx
-//                                foo bar company product widget has crashed)
+// BREAKPAD_VENDOR                Vendor name, used in UI (e.g. "A report has
+//                                been created that you can send to <vendor>")
 //
 // BREAKPAD_URL                   URL destination for reporting
 //                                REQUIRED

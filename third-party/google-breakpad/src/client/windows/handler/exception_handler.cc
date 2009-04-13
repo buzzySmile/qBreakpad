@@ -286,6 +286,8 @@ ExceptionHandler::~ExceptionHandler() {
     TerminateThread(handler_thread_, 1);
 #endif  // BREAKPAD_NO_TERMINATE_THREAD
 
+    CloseHandle(handler_thread_);
+    handler_thread_ = NULL;
     DeleteCriticalSection(&handler_critical_section_);
     CloseHandle(handler_start_semaphore_);
     CloseHandle(handler_finish_semaphore_);
