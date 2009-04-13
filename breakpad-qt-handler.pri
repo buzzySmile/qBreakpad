@@ -7,6 +7,7 @@ unix:!mac {
 }
 
 # test config
+# TODO actually, I shoud check it better
 LIST = thread exceptions rtti stl
 for(f, LIST) {
 	!CONFIG($$f) {
