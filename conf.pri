@@ -1,0 +1,2 @@
+CONFIG += static
+CONFIG += release
