@@ -53,11 +53,13 @@ public:
 	static char reporter_[1024];
 	static char reporterArguments_[8*1024];
 	static google_breakpad::ExceptionHandler* handler_;
+	static ReportCrashesToSystem reportCrashesToSystem_;
 };
 
 char GlobalHandlerPrivate::reporter_[1024] = {0};
 char GlobalHandlerPrivate::reporterArguments_[8*1024] = {0};
 google_breakpad::ExceptionHandler* GlobalHandlerPrivate::handler_ = 0;
+ReportCrashesToSystem GlobalHandlerPrivate::reportCrashesToSystem_ = ReportUnhandled;
 
 
 bool launcher(const char* program, const char* const arguments[])
@@ -100,7 +102,7 @@ bool DumpCallback(const char* _dump_dir,
 	*/
 
 	launcher(GlobalHandlerPrivate::reporter_, 0);
-	return success;
+	return (GlobalHandlerPrivate::reportCrashesToSystem_ == ReportUnhandled) ? success : false;
 }
 
 
@@ -180,6 +182,11 @@ void GlobalHandler::setReporter(const QString& reporter)
 	Q_ASSERT(QDir().exists(rep));
 
 	qstrcpy(d->reporter_, QFile::encodeName(rep));
+}
+
+void GlobalHandler::setReportCrashesToSystem(ReportCrashesToSystem report)
+{
+	d->reportCrashesToSystem_ = report;
 }
 
 bool GlobalHandler::writeMinidump()

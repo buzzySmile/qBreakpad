@@ -1,10 +1,8 @@
 Handler:
 	- minidump on demand
 	- crash-friendly start of reporter external program
-	- return exception to OS?
-		- always hide exception from OS
-		- always return exception to OS (for example, KDE's Dr. Konqi will catch it - system-wide crash reporter)
-		- return to OS only unhandled exceptions ('return success')
+	- do we really need 'thread, exception, rtti' ?
+	- to check everything with non-latin1 dir and file names - QFile::encodeName
 
 Sender:
 	- to get information about environment (OS, hardware, software versions, etc.)
@@ -16,9 +14,8 @@ google-breakpad:
 	- GNU/Linux: Add support for DWARF symbols.
 
 Build:
-	- use Justin's qconf
-	- build static lib by default
-	- 'make test', 'make install'
+	- 'make test'
+	- 'make install' - needed?
 
 Demo:
 	- GUI for search in minidump (for sensitive data like passwords); highlight words 'password', 'login', etc.
