@@ -1,0 +1,30 @@
+Handler:
+	- minidump on demand
+	- crash-friendly start of reporter external program
+	- return exception to OS?
+		- always hide exception from OS
+		- always return exception to OS (for example, KDE's Dr. Konqi will catch it - system-wide crash reporter)
+		- return to OS only unhandled exceptions ('return success')
+
+Sender:
+	- to get information about environment (OS, hardware, software versions, etc.)
+	- to get information about crashed program (version, ...)
+	- send minidump with above-mentioned information and user's comment
+
+google-breakpad:
+	- *nix: Does it support debugging symbols which was stripped to other file? (libA.so and libA.so.debug)
+	- GNU/Linux: Add support for DWARF symbols.
+
+Build:
+	- use Justin's qconf
+	- build static lib by default
+	- 'make test', 'make install'
+
+Demo:
+	- GUI for search in minidump (for sensitive data like passwords); highlight words 'password', 'login', etc.
+
+Docs:
+	- "What do you expect to have in debug/release build?"
+		- debugging symbols
+		- special debugging code (#ifndef NDEBUG)
+		- linking with debug versions of libraries
