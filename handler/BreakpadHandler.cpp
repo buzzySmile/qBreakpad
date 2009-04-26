@@ -50,12 +50,27 @@ public:
 	~GlobalHandlerPrivate();
 
 public:
-	static QString reporter_;
+	static char reporter_[1024];
+	static char reporterArguments_[8*1024];
 	static google_breakpad::ExceptionHandler* handler_;
 };
 
-QString GlobalHandlerPrivate::reporter_ = QString();
+char GlobalHandlerPrivate::reporter_[1024] = {0};
+char GlobalHandlerPrivate::reporterArguments_[8*1024] = {0};
 google_breakpad::ExceptionHandler* GlobalHandlerPrivate::handler_ = 0;
+
+
+bool launcher(const char* program, const char* const arguments[])
+{
+	// TODO launcher
+//	if(!GlobalHandlerPrivate::reporter_.isEmpty()) {
+//		QProcess::startDetached(GlobalHandlerPrivate::reporter_);	// very likely we will die there
+//	}
+
+	Q_UNUSED(program);
+	Q_UNUSED(arguments);
+	return false;
+}
 
 
 #if defined(Q_OS_WIN32)
@@ -84,9 +99,7 @@ bool DumpCallback(const char* _dump_dir,
 		Creating QString's, using qDebug, etc. - everything is crash-unfriendly.
 	*/
 
-	if(!GlobalHandlerPrivate::reporter_.isEmpty()) {
-		QProcess::startDetached(GlobalHandlerPrivate::reporter_);	// very likely we will die there
-	}
+	launcher(GlobalHandlerPrivate::reporter_, 0);
 	return success;
 }
 
@@ -94,7 +107,6 @@ bool DumpCallback(const char* _dump_dir,
 GlobalHandlerPrivate::GlobalHandlerPrivate()
 {
 	handler_ = new google_breakpad::ExceptionHandler(/*DumpPath*/ "", /*FilterCallback*/ 0, DumpCallback, /*context*/ 0, true);
-	reporter_.clear();
 }
 
 GlobalHandlerPrivate::~GlobalHandlerPrivate()
@@ -142,30 +154,32 @@ void GlobalHandler::setDumpPath(const QString& path)
 
 void GlobalHandler::setReporter(const QString& reporter)
 {
-	d->reporter_ = reporter;
+	QString rep = reporter;
 
-	if(!QDir::isAbsolutePath(d->reporter_)) {
+	if(!QDir::isAbsolutePath(rep)) {
 #		if defined(Q_OS_MAC)
 			// TODO(AlekSi) What to do if we are not inside bundle?
-			d->reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/../Resources/") + d->reporter_);
+			rep = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/../Resources/") + rep);
 #		elif defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
 			// MAYBE(AlekSi) Better place for Linux? libexec? or what?
-			d->reporter_ = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + d->reporter_);
+			rep = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + rep);
 #		else
 			What is this?!
 #		endif
 
-		qDebug("BreakpadQt: setReporter: %s -> %s", qPrintable(reporter), qPrintable(d->reporter_));
+		qDebug("BreakpadQt: setReporter: %s -> %s", qPrintable(reporter), qPrintable(rep));
 	}
-	Q_ASSERT(QDir::isAbsolutePath(d->reporter_));
+	Q_ASSERT(QDir::isAbsolutePath(rep));
 
 	// add .exe for Windows if needed
 #	if defined(Q_OS_WIN32)
-		if(!QDir().exists(impl_->reporter_)) {
-			d->reporter_ += QLatin1String(".exe");
+		if(!QDir().exists(rep)) {
+			rep += QLatin1String(".exe");
 		}
 #	endif
-	Q_ASSERT(QDir().exists(d->reporter_));
+	Q_ASSERT(QDir().exists(rep));
+
+	qstrcpy(d->reporter_, QFile::encodeName(rep));
 }
 
 bool GlobalHandler::writeMinidump()
