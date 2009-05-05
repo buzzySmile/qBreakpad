@@ -88,7 +88,7 @@ kern_return_t OnDemandServer::Initialize(const char *server_command,
                                 &service_port_);
 
   if (kr != KERN_SUCCESS) {
-    //PRINT_MACH_RESULT(kr, "bootstrap_create_service() : ");
+    PRINT_MACH_RESULT(kr, "bootstrap_create_service() : ");
 
     // perhaps the service has already been created - try to look it up
     kr = bootstrap_look_up(bootstrap_port, (char*)service_name, &service_port_);

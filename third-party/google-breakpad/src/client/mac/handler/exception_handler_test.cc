@@ -28,15 +28,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
-g++ -framework CoreFoundation -I../../.. \
-	../../minidump_file_writer.cc \
-	../../../common/convert_UTF.c \
-	../../../common/string_conversion.cc \
-	../../../common/mac/string_utilities.cc \
-	exception_handler.cc \
-	minidump_generator.cc \
-	exception_handler_test.cc \
-	-o exception_handler_test
+g++ -framework CoreFoundation -I../../.. ../../minidump_file_writer.cc ../../../common/convert_UTF.c ../../../common/string_conversion.cc ../../../common/mac/string_utilities.cc exception_handler.cc minidump_generator.cc exception_handler_test.cc -o exception_handler_test -mmacosx-version-min=10.4 ../../../common/mac/file_id.cc  dynamic_images.cc ../../../common/mac/macho_id.cc  ../../../common/mac/macho_walker.cc  -lcrypto ../../../common/mac/macho_utilities.cc 
 */
 
 #include <pthread.h>

@@ -39,20 +39,20 @@
 #define DEBUGLOG if (gDebugLog) fprintf
 #define IGNORE_DEBUGGER "BREAKPAD_IGNORE_DEBUGGER"
 
-#import "client/mac/Framework/Breakpad.h"
-#import "client/mac/crash_generation/Inspector.h"
-#import "client/mac/Framework/OnDemandServer.h"
-#import "client/mac/handler/protected_memory_allocator.h"
 #import "common/mac/MachIPC.h"
 #import "common/mac/SimpleStringDictionary.h"
+
+#import "client/mac/crash_generation/Inspector.h"
+#import "client/mac/handler/exception_handler.h"
+#import "client/mac/Framework/Breakpad.h"
+#import "client/mac/Framework/OnDemandServer.h"
+#import "client/mac/handler/protected_memory_allocator.h"
 
 #import <sys/stat.h>
 #import <sys/sysctl.h>
 
 #import <Foundation/Foundation.h>
 
-#import "exception_handler.h"
-#import "string_utilities.h"
 
 using google_breakpad::KeyValueEntry;
 using google_breakpad::SimpleStringDictionary;
@@ -369,7 +369,6 @@ bool Breakpad::Initialize(NSDictionary *parameters) {
     new (gBreakpadAllocator->Allocate(sizeof(google_breakpad::ExceptionHandler)))
       google_breakpad::ExceptionHandler(
         Breakpad::ExceptionHandlerDirectCallback, this, true);
-
   return true;
 }
 
@@ -389,6 +388,10 @@ Breakpad::~Breakpad() {
 //=============================================================================
 bool Breakpad::ExtractParameters(NSDictionary *parameters) {
   NSUserDefaults *stdDefaults = [NSUserDefaults standardUserDefaults];
+  NSString *skipConfirm = [stdDefaults stringForKey:@BREAKPAD_SKIP_CONFIRM];
+  NSString *sendAndExit = [stdDefaults stringForKey:@BREAKPAD_SEND_AND_EXIT];
+
+  NSString *serverType = [parameters objectForKey:@BREAKPAD_SERVER_TYPE];
   NSString *display = [parameters objectForKey:@BREAKPAD_PRODUCT_DISPLAY];
   NSString *product = [parameters objectForKey:@BREAKPAD_PRODUCT];
   NSString *version = [parameters objectForKey:@BREAKPAD_VERSION];
@@ -398,25 +401,25 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
                 [parameters objectForKey:@BREAKPAD_INSPECTOR_LOCATION];
   NSString *reporterPathString =
                 [parameters objectForKey:@BREAKPAD_REPORTER_EXE_LOCATION];
-  NSString *skipConfirm = [parameters objectForKey:@BREAKPAD_SKIP_CONFIRM];
-  NSString *sendAndExit = [parameters objectForKey:@BREAKPAD_SEND_AND_EXIT];
+  NSString *timeout = [parameters objectForKey:@BREAKPAD_CONFIRM_TIMEOUT];
   NSArray  *logFilePaths = [parameters objectForKey:@BREAKPAD_LOGFILES];
   NSString *logFileTailSize = [parameters objectForKey:@BREAKPAD_LOGFILE_UPLOAD_SIZE];
   NSString *reportEmail = [parameters objectForKey:@BREAKPAD_EMAIL];
   NSString *requestUserText =
                 [parameters objectForKey:@BREAKPAD_REQUEST_COMMENTS];
+  NSString *requestEmail = [parameters objectForKey:@BREAKPAD_REQUEST_EMAIL];
   NSString *vendor =
     [parameters objectForKey:@BREAKPAD_VENDOR];
   NSString *dumpSubdirectory =
     [parameters objectForKey:@BREAKPAD_DUMP_DIRECTORY];
-  
-  // If these two are not already set(skipConfirm and sendAndExit can
-  // come from user defaults and take priority)
+  NSString *buildId =
+    [parameters objectForKey:@BREAKPAD_BUILD_ID];
+  // These may have been set above as user prefs, which take priority.
   if (!skipConfirm) {
-    skipConfirm = [stdDefaults stringForKey:@BREAKPAD_SKIP_CONFIRM];
+    skipConfirm = [parameters objectForKey:@BREAKPAD_SKIP_CONFIRM];
   }
   if (!sendAndExit) {
-    sendAndExit = [stdDefaults stringForKey:@BREAKPAD_SEND_AND_EXIT];
+    sendAndExit = [parameters objectForKey:@BREAKPAD_SEND_AND_EXIT];
   }
 
   if (!product)
@@ -430,6 +433,9 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
 
   if (!interval)
     interval = @"3600";
+
+  if (!timeout)
+    timeout = @"300";
 
   if (!logFileTailSize)
     logFileTailSize = @"200000";
@@ -528,12 +534,14 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
 
   SimpleStringDictionary &dictionary = *config_params_;
 
+  dictionary.SetKeyValue(BREAKPAD_SERVER_TYPE,     [serverType UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_PRODUCT_DISPLAY, [display UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_PRODUCT,         [product UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_VERSION,         [version UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_URL,             [urlStr UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_REPORT_INTERVAL, [interval UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_SKIP_CONFIRM,    [skipConfirm UTF8String]);
+  dictionary.SetKeyValue(BREAKPAD_CONFIRM_TIMEOUT, [timeout UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_INSPECTOR_LOCATION,
                            [inspectorPathString fileSystemRepresentation]);
   dictionary.SetKeyValue(BREAKPAD_REPORTER_EXE_LOCATION,
@@ -542,16 +550,27 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
                          [logFileTailSize UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_REQUEST_COMMENTS,
                          [requestUserText UTF8String]);
-  dictionary.SetKeyValue(BREAKPAD_VENDOR,
-                         [vendor UTF8String]);
+  dictionary.SetKeyValue(BREAKPAD_REQUEST_EMAIL, [requestEmail UTF8String]);
+  dictionary.SetKeyValue(BREAKPAD_VENDOR, [vendor UTF8String]);
   dictionary.SetKeyValue(BREAKPAD_DUMP_DIRECTORY,
                          [dumpSubdirectory UTF8String]);
   
+  dictionary.SetKeyValue(BREAKPAD_BUILD_ID,
+                         [buildId UTF8String]);
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  char timeStartedString[32];
+  sprintf(timeStartedString, "%d", tv.tv_sec);
+  dictionary.SetKeyValue(BREAKPAD_PROCESS_START_TIME,
+                         timeStartedString);
+
   if (logFilePaths) {
     char logFileKey[255];
     for(unsigned int i = 0; i < [logFilePaths count]; i++) {
       sprintf(logFileKey,"%s%d", BREAKPAD_LOGFILE_KEY_PREFIX, i);
-      dictionary.SetKeyValue(logFileKey, [[logFilePaths objectAtIndex:i] fileSystemRepresentation]);
+      dictionary.SetKeyValue(logFileKey,
+                             [[logFilePaths objectAtIndex:i]
+                               fileSystemRepresentation]);
     }
   }
 

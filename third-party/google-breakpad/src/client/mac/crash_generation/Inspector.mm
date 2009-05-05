@@ -29,11 +29,12 @@
 //
 // Utility that can inspect another process and write a crash dump
 
-#import <cstdio>
-#import <iostream>
-#import <stdio.h>
-#import <string.h>
-#import <string>
+#include <cstdio>
+#include <iostream>
+#include <stdio.h>
+#include <string.h>
+#include <string>
+#include <sys/time.h>
 
 #import "client/mac/crash_generation/Inspector.h"
 
@@ -160,8 +161,15 @@ void ConfigFile::WriteFile(const SimpleStringDictionary *configurationParameters
           sizeof(config_file_path_));
   config_file_ = mkstemp(config_file_path_);
 
-  if (config_file_ == -1)
+  if (config_file_ == -1) {
+    DEBUGLOG(stderr,
+             "mkstemp(config_file_path_) == -1 (%s)\n",
+             strerror(errno));
     return;
+  }
+  else {
+    DEBUGLOG(stderr, "Writing config file to (%s)\n", config_file_path_);
+  }
 
   has_created_file_ = true;
 
@@ -177,6 +185,10 @@ void ConfigFile::WriteFile(const SimpleStringDictionary *configurationParameters
   SimpleStringDictionaryIterator iter(dictionary);
 
   while ((entry = iter.Next())) {
+    DEBUGLOG(stderr,
+             "config: (%s) -> (%s)\n",
+             entry->GetKey(),
+             entry->GetValue());
     result = AppendConfigString(entry->GetKey(), entry->GetValue());
 
     if (!result)
@@ -321,15 +333,41 @@ kern_return_t Inspector::ReadMessages() {
 }
 
 //=============================================================================
+// Sets keys in the parameters dictionary that are specific to process uptime.
+// The two we set are process up time, and process crash time.
+void Inspector::SetCrashTimeParameters() {
+  // Set process uptime parameter
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+
+  char processUptimeString[32], processCrashtimeString[32];
+  const char *processStartTimeString =
+    config_params_.GetValueForKey(BREAKPAD_PROCESS_START_TIME);
+
+  // Set up time if we've received the start time.
+  if (processStartTimeString) {
+    time_t processStartTime = strtol(processStartTimeString, NULL, 10);
+    time_t processUptime = tv.tv_sec - processStartTime;
+    sprintf(processUptimeString, "%d", processUptime);
+    config_params_.SetKeyValue(BREAKPAD_PROCESS_UP_TIME, processUptimeString);
+  }
+
+  sprintf(processCrashtimeString, "%d", tv.tv_sec);
+  config_params_.SetKeyValue(BREAKPAD_PROCESS_CRASH_TIME,
+                             processCrashtimeString);
+}
+
 bool Inspector::InspectTask() {
   // keep the task quiet while we're looking at it
   task_suspend(remote_task_);
+  DEBUGLOG(stderr, "Suspsended Remote task\n");
 
   NSString *minidumpDir;
 
   const char *minidumpDirectory =
     config_params_.GetValueForKey(BREAKPAD_DUMP_DIRECTORY);
 
+  SetCrashTimeParameters();
   // If the client app has not specified a minidump directory,
   // use a default of Library/<kDefaultLibrarySubdirectory>/<Product Name>
   if (0 == strlen(minidumpDirectory)) {
@@ -350,6 +388,9 @@ bool Inspector::InspectTask() {
     minidumpDir = [[NSString stringWithUTF8String:minidumpDirectory]
                     stringByExpandingTildeInPath];
   }
+  DEBUGLOG(stderr, 
+           "Writing minidump to directory (%s)\n",
+           [minidumpDir UTF8String]);
 
   MinidumpLocation minidumpLocation(minidumpDir);
 
@@ -368,14 +409,18 @@ bool Inspector::InspectTask() {
 
   NSString *minidumpPath = [NSString stringWithFormat:@"%s/%s.dmp",
     minidumpLocation.GetPath(), minidumpLocation.GetID()];
+    DEBUGLOG(stderr, 
+           "minidump path (%s)\n",
+           [minidumpPath UTF8String]);
+
 
   bool result = generator.Write([minidumpPath fileSystemRepresentation]);
 
-  DEBUGLOG(stderr, "Inspector: finished writing minidump file: %s\n",
-    [minidumpPath fileSystemRepresentation]);
+  DEBUGLOG(stderr, "Wrote minidump - %s\n", result ? "OK" : "FAILED");
 
   // let the task continue
   task_resume(remote_task_);
+  DEBUGLOG(stderr, "Resumed remote task\n");
 
   return result;
 }

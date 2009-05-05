@@ -171,6 +171,8 @@ class Inspector {
   kern_return_t   SendAcknowledgement();
   void            LaunchReporter(const char *inConfigFilePath);
 
+  void            SetCrashTimeParameters();
+
   mach_port_t     service_rcv_port_;
 
   int             exception_type_;

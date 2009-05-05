@@ -278,20 +278,28 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
   // have to copy because modifying the result of string::c_str is not
   // permitted
   size_t map_buffer_length = strlen(map_buffer_c_str);
-  char *map_buffer_chars = new char[map_buffer_length];
+
+  // If the length is 0, we can still pretend we have a symbol file. This is
+  // for scenarios that want to test symbol lookup, but don't necessarily care if
+  // certain modules do not have any information, like system libraries.
+  if (map_buffer_length == 0) {
+    return true;
+  }
+
+  scoped_array<char> map_buffer_chars(new char[map_buffer_length]);
   if (map_buffer_chars == NULL) {
     BPLOG(ERROR) << "Memory allocation of " << map_buffer_length <<
         " bytes failed";
     return false;
   }
 
-  strncpy(map_buffer_chars, map_buffer_c_str, map_buffer_length);
+  strncpy(map_buffer_chars.get(), map_buffer_c_str, map_buffer_length);
 
   if (map_buffer_chars[map_buffer_length - 1] == '\n') {
     map_buffer_chars[map_buffer_length - 1] = '\0';
   }
   char *buffer;
-  buffer = strtok_r(map_buffer_chars, "\r\n", &save_ptr);
+  buffer = strtok_r(map_buffer_chars.get(), "\r\n", &save_ptr);
 
   while (buffer != NULL) {
     ++line_number;
@@ -300,14 +308,12 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
       if (!ParseFile(buffer)) {
         BPLOG(ERROR) << "ParseFile on buffer failed at " <<
             ":" << line_number;
-        delete [] map_buffer_chars;
         return false;
       }
     } else if (strncmp(buffer, "STACK ", 6) == 0) {
       if (!ParseStackInfo(buffer)) {
         BPLOG(ERROR) << "ParseStackInfo failed at " <<
             ":" << line_number;
-        delete [] map_buffer_chars;
         return false;
       }
     } else if (strncmp(buffer, "FUNC ", 5) == 0) {
@@ -315,7 +321,6 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
       if (!cur_func.get()) {
         BPLOG(ERROR) << "ParseFunction failed at " <<
             ":" << line_number;
-        delete [] map_buffer_chars;
         return false;
       }
       // StoreRange will fail if the function has an invalid address or size.
@@ -329,7 +334,6 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
       if (!ParsePublicSymbol(buffer)) {
         BPLOG(ERROR) << "ParsePublicSymbol failed at " <<
             ":" << line_number;
-        delete [] map_buffer_chars;
         return false;
       }
     } else if (strncmp(buffer, "MODULE ", 7) == 0) {
@@ -343,14 +347,12 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
       if (!cur_func.get()) {
         BPLOG(ERROR) << "Found source line data without a function at " <<
             ":" << line_number;
-        delete [] map_buffer_chars;
         return false;
       }
       Line *line = ParseLine(buffer);
       if (!line) {
         BPLOG(ERROR) << "ParseLine failed at " << line_number << " for " <<
             buffer;
-        delete [] map_buffer_chars;
         return false;
       }
       cur_func->lines.StoreRange(line->address, line->size,
