@@ -35,7 +35,6 @@
 
 #include <unistd.h>
 
-#include <cstdlib>
 #include <string>
 
 #include "common/linux/http_upload.h"

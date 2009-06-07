@@ -42,6 +42,13 @@
 	<string>YES</string>
 	<key>BreakpadVendor</key>
 	<string>Foo Bar Corp, Incorporated, LTD, LLC</string>
+	<key>BreakpadServerParameters</key>
+	<dict>
+	  <key>Param1</key>
+	  <string>Value1</string>
+	  <key>Param2</key>
+	  <string>Value2</string>
+	</dict>
 	<key>LSUIElement</key>
 	<string>1</string>
 </dict>

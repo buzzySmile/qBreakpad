@@ -234,6 +234,9 @@
     NSLog(@"Shouldn't find BreakpadKeyValue (key2)");
   }
 
+  BreakpadAddUploadParameter(breakpad_,
+                             @"MeaningOfLife",
+                             @"42");
   [NSThread detachNewThreadSelector:@selector(anotherThread)
                            toTarget:self withObject:nil];
 
@@ -244,8 +247,8 @@
   // automated testing.
   if ([args boolForKey:@"autocrash"]) {
     BreakpadSetKeyValue(breakpad_,
-                              @BREAKPAD_SKIP_CONFIRM,
-                              @"YES");
+                        @BREAKPAD_SKIP_CONFIRM,
+                        @"YES");
     [self causeCrash];
   }
 

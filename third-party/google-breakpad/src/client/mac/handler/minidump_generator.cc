@@ -172,7 +172,7 @@ bool MinidumpGenerator::Write(const char *path) {
     // exception.
     &MinidumpGenerator::WriteExceptionStream,
   };
-  bool result = true;
+  bool result = false;
 
   // If opening was successful, create the header, directory, and call each
   // writer.  The destructor for the TypedMDRVAs will cause the data to be
@@ -203,6 +203,7 @@ bool MinidumpGenerator::Write(const char *path) {
     header_ptr->stream_directory_rva = dir.position();
 
     MDRawDirectory local_dir;
+    result = true;
     for (int i = 0; (result) && (i < writer_count); ++i) {
       result = (this->*writers[i])(&local_dir);
 

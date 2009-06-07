@@ -38,7 +38,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <ctime>
-#include <cstring>
 #include <linux/limits.h>
 
 #include "client/linux/handler/exception_handler.h"

@@ -30,7 +30,7 @@
 #include <assert.h>
 
 // Disable exception handler warnings.
-#pragma warning( disable : 4530 ) 
+#pragma warning( disable : 4530 )
 
 #include <fstream>
 
@@ -211,17 +211,19 @@ bool HTTPUpload::ReadResponse(HINTERNET request, wstring *response) {
 
   DWORD bytes_available;
   DWORD total_read = 0;
-  bool return_code;
+  BOOL return_code;
 
-  while ((return_code = InternetQueryDataAvailable(request, &bytes_available,
-                                                   0, 0) != 0) &&
-          bytes_available > 0) {
+  while (((return_code = InternetQueryDataAvailable(request, &bytes_available,
+	  0, 0)) != 0) && bytes_available > 0) {
+
     vector<char> response_buffer(bytes_available);
     DWORD size_read;
 
-    if ((return_code = InternetReadFile(request, &response_buffer[0],
-                                        bytes_available, &size_read) != 0) &&
-        size_read > 0) {
+    return_code = InternetReadFile(request,
+                                   &response_buffer[0],
+                                   bytes_available, &size_read);
+
+    if (return_code && size_read > 0) {
       total_read += size_read;
       response_body.append(&response_buffer[0], size_read);
     } else {
@@ -333,7 +335,7 @@ void HTTPUpload::GetFileContents(const wstring &filename,
 #endif  // _MSC_VER >= 1400
   if (file.is_open()) {
     file.seekg(0, ios::end);
-    int length = file.tellg();
+    std::streamoff length = file.tellg();
     contents->resize(length);
     if (length != 0) {
         file.seekg(0, ios::beg);

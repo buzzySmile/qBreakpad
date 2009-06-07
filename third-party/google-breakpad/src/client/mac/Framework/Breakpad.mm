@@ -154,8 +154,9 @@ class Breakpad {
 
   void GenerateAndSendReport();
 
-  void SetFilterCallback(BreakpadFilterCallback callback) {
+  void SetFilterCallback(BreakpadFilterCallback callback, void *context) {
     filter_callback_ = callback;
+    filter_callback_context_ = context;
   }
 
  private:
@@ -163,7 +164,8 @@ class Breakpad {
     : handler_(NULL),
       config_params_(NULL),
       send_and_exit_(true),
-      filter_callback_(NULL) {
+      filter_callback_(NULL), 
+      filter_callback_context_(NULL) {
     inspector_path_[0] = 0;
   }
 
@@ -194,8 +196,7 @@ class Breakpad {
   bool                    send_and_exit_;  // Exit after sending, if true
 
   BreakpadFilterCallback  filter_callback_;
-
-  unsigned int            logFileCounter;
+  void                    *filter_callback_context_;
 };
 
 #pragma mark -
@@ -412,8 +413,10 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
     [parameters objectForKey:@BREAKPAD_VENDOR];
   NSString *dumpSubdirectory =
     [parameters objectForKey:@BREAKPAD_DUMP_DIRECTORY];
-  NSString *buildId =
-    [parameters objectForKey:@BREAKPAD_BUILD_ID];
+
+  NSDictionary *serverParameters = 
+    [parameters objectForKey:@BREAKPAD_SERVER_PARAMETER_DICT];
+
   // These may have been set above as user prefs, which take priority.
   if (!skipConfirm) {
     skipConfirm = [parameters objectForKey:@BREAKPAD_SKIP_CONFIRM];
@@ -521,10 +524,19 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
     dumpSubdirectory = @"";
   }
 
-  // The product and version are required values.
-  if (![product length] || ![version length]) {
-    DEBUGLOG(stderr,
-             "Missing required product or version subdirectory keys\n");
+  // The product, version, and URL are required values.
+  if (![product length]) {
+    DEBUGLOG(stderr, "Missing required product key.\n");
+    return false;
+  }
+
+  if (![version length]) {
+    DEBUGLOG(stderr, "Missing required version key.\n");
+    return false;
+  }
+
+  if (![urlStr length]) {
+    DEBUGLOG(stderr, "Missing required URL key.\n");
     return false;
   }
 
@@ -555,8 +567,6 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
   dictionary.SetKeyValue(BREAKPAD_DUMP_DIRECTORY,
                          [dumpSubdirectory UTF8String]);
   
-  dictionary.SetKeyValue(BREAKPAD_BUILD_ID,
-                         [buildId UTF8String]);
   struct timeval tv;
   gettimeofday(&tv, NULL);
   char timeStartedString[32];
@@ -579,6 +589,15 @@ bool Breakpad::ExtractParameters(NSDictionary *parameters) {
                            [reportEmail UTF8String]);
   }
 
+  if (serverParameters) {
+    // For each key-value pair, call BreakpadAddUploadParameter()
+    NSEnumerator *keyEnumerator = [serverParameters keyEnumerator];
+    NSString *aParameter;
+    while (aParameter = [keyEnumerator nextObject]) {
+      BreakpadAddUploadParameter(this, aParameter,
+				 [serverParameters objectForKey:aParameter]);
+    }
+  }
   return true;
 }
 
@@ -622,7 +641,8 @@ bool Breakpad::HandleException(int           exception_type,
   if (filter_callback_) {
     bool should_handle = filter_callback_(exception_type,
                                           exception_code,
-                                          crashing_thread);
+                                          crashing_thread,
+                                          filter_callback_context_);
     if (!should_handle) return false;
   }
 
@@ -678,7 +698,7 @@ bool Breakpad::HandleException(int           exception_type,
     if (result == KERN_SUCCESS) {
       // Wait for acknowledgement that the inspection has finished.
       MachReceiveMessage acknowledge_messsage;
-      result = acknowledge_port.WaitForMessage(&acknowledge_messsage, 2000);
+      result = acknowledge_port.WaitForMessage(&acknowledge_messsage, 5000);
     }
   }
 
@@ -769,7 +789,7 @@ BreakpadRef BreakpadCreate(NSDictionary *parameters) {
 
     [pool release];
     return (BreakpadRef)breakpad;
-  } catch(...) {    // don't let exception leave this C API
+  } catch(...) {    // don't let exceptions leave this C API
     if (gKeyValueAllocator) {
       gKeyValueAllocator->~ProtectedMemoryAllocator();
       gKeyValueAllocator = NULL;
@@ -817,7 +837,7 @@ void BreakpadRelease(BreakpadRef ref) {
 
       pthread_mutex_destroy(&gDictionaryMutex);
     }
-  } catch(...) {    // don't let exception leave this C API
+  } catch(...) {    // don't let exceptions leave this C API
     fprintf(stderr, "BreakpadRelease() : error\n");
   }
 }
@@ -833,11 +853,51 @@ void BreakpadSetKeyValue(BreakpadRef ref, NSString *key, NSString *value) {
 
       breakpad->SetKeyValue(key, value);
     }
-  } catch(...) {    // don't let exception leave this C API
+  } catch(...) {    // don't let exceptions leave this C API
     fprintf(stderr, "BreakpadSetKeyValue() : error\n");
   }
 }
 
+void BreakpadAddUploadParameter(BreakpadRef ref,
+                                NSString *key,
+                                NSString *value) {
+  // The only difference, internally, between an upload parameter and
+  // a key value one that is set with BreakpadSetKeyValue is that we
+  // prepend the keyname with a special prefix.  This informs the
+  // crash sender that the parameter should be sent along with the
+  // POST of the crash dump upload.
+  try {
+    Breakpad *breakpad = (Breakpad *)ref;
+
+    if (breakpad && key && gKeyValueAllocator) {
+      ProtectedMemoryLocker locker(&gDictionaryMutex, gKeyValueAllocator);
+
+      NSString *prefixedKey = [@BREAKPAD_SERVER_PARAMETER_PREFIX
+				stringByAppendingString:key];
+      breakpad->SetKeyValue(prefixedKey, value);
+    }
+  } catch(...) {    // don't let exceptions leave this C API
+    fprintf(stderr, "BreakpadSetKeyValue() : error\n");
+  }
+}
+
+void BreakpadRemoveUploadParameter(BreakpadRef ref,
+                                   NSString *key) {
+  try {
+    // Not called at exception time
+    Breakpad *breakpad = (Breakpad *)ref;
+
+    if (breakpad && key && gKeyValueAllocator) {
+      ProtectedMemoryLocker locker(&gDictionaryMutex, gKeyValueAllocator);
+
+      NSString *prefixedKey = [NSString stringWithFormat:@"%@%@",
+                                        @BREAKPAD_SERVER_PARAMETER_PREFIX, key];
+      breakpad->RemoveKeyValue(prefixedKey);
+    }
+  } catch(...) {    // don't let exceptions leave this C API
+    fprintf(stderr, "BreakpadRemoveKeyValue() : error\n");
+  }
+}
 //=============================================================================
 NSString *BreakpadKeyValue(BreakpadRef ref, NSString *key) {
   NSString *value = nil;
@@ -852,7 +912,7 @@ NSString *BreakpadKeyValue(BreakpadRef ref, NSString *key) {
     ProtectedMemoryLocker locker(&gDictionaryMutex, gKeyValueAllocator);
 
     value = breakpad->KeyValue(key);
-  } catch(...) {    // don't let exception leave this C API
+  } catch(...) {    // don't let exceptions leave this C API
     fprintf(stderr, "BreakpadKeyValue() : error\n");
   }
 
@@ -870,7 +930,7 @@ void BreakpadRemoveKeyValue(BreakpadRef ref, NSString *key) {
 
       breakpad->RemoveKeyValue(key);
     }
-  } catch(...) {    // don't let exception leave this C API
+  } catch(...) {    // don't let exceptions leave this C API
     fprintf(stderr, "BreakpadRemoveKeyValue() : error\n");
   }
 }
@@ -887,14 +947,15 @@ void BreakpadGenerateAndSendReport(BreakpadRef ref) {
       breakpad->GenerateAndSendReport();
       gBreakpadAllocator->Protect();
     }
-  } catch(...) {    // don't let exception leave this C API
+  } catch(...) {    // don't let exceptions leave this C API
     fprintf(stderr, "BreakpadGenerateAndSendReport() : error\n");
   }
 }
 
 //=============================================================================
 void BreakpadSetFilterCallback(BreakpadRef ref,
-                               BreakpadFilterCallback callback) {
+                               BreakpadFilterCallback callback,
+                               void *context) {
 
   try {
     Breakpad *breakpad = (Breakpad *)ref;
@@ -903,9 +964,9 @@ void BreakpadSetFilterCallback(BreakpadRef ref,
       // share the dictionary mutex here (we really don't need a mutex)
       ProtectedMemoryLocker locker(&gDictionaryMutex, gBreakpadAllocator);
 
-      breakpad->SetFilterCallback(callback);
+      breakpad->SetFilterCallback(callback, context);
     }
-  } catch(...) {    // don't let exception leave this C API
+  } catch(...) {    // don't let exceptions leave this C API
     fprintf(stderr, "BreakpadSetFilterCallback() : error\n");
   }
 }
@@ -933,5 +994,4 @@ void BreakpadAddLogFile(BreakpadRef ref, NSString *logPathname) {
   }
 
   BreakpadSetKeyValue(ref, logFileKey, logPathname);
-
 }

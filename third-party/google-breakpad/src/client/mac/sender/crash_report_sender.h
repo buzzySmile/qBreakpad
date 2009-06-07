@@ -69,15 +69,20 @@ extern NSString *const kDefaultServerType;
   NSMutableDictionary *parameters_;        // Key value pairs of data (STRONG)
   NSData *minidumpContents_;               // The data in the minidump (STRONG)
   NSData *logFileData_;                    // An NSdata for the tar,
-                                           // bz2'd log file
+                                           // bz2'd log file.
   NSMutableDictionary *serverDictionary_;  // The dictionary mapping a
                                            // server type name to a
-                                           // dictionary of URL
-                                           // parameter names
+                                           // dictionary of server
+                                           // parameter names.
   NSMutableDictionary *socorroDictionary_; // The dictionary for
-                                           // Socorro
+                                           // Socorro.
   NSMutableDictionary *googleDictionary_;  // The dictionary for
-                                           // Google
+                                           // Google.
+  NSMutableDictionary *extraServerVars_;   // A dictionary containing
+                                           // extra key/value pairs
+                                           // that are uploaded to the
+                                           // crash server with the
+                                           // minidump.
 }
 
 // Stops the modal panel with an NSAlertDefaultReturn value. This is the action
@@ -95,9 +100,6 @@ extern NSString *const kDefaultServerType;
 - (BOOL)control:(NSControl *)control textView:(NSTextView *)textView
                           doCommandBySelector:(SEL)commandSelector;
 
-// Helper method to set HTTP parameters based on server type
-- (BOOL)setPostParametersFromDictionary:(NSMutableDictionary *)crashParameters;
-
 // Accessors to make bindings work
 - (NSString *)commentsValue;
 - (void)setCommentsValue:(NSString *)value;
@@ -105,7 +107,4 @@ extern NSString *const kDefaultServerType;
 - (NSString *)emailValue;
 - (void)setEmailValue:(NSString *)value;
 
-// Initialization helper to create dictionaries mapping Breakpad
-// parameters to URL parameters
-- (void)createServerParameterDictionaries;
 @end

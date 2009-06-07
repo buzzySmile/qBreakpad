@@ -30,6 +30,8 @@
 		33880C800F9E097100817F82 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 33880C7E0F9E097100817F82 /* InfoPlist.strings */; };
 		4084699D0F5D9CF900FDCA37 /* crash_report_sender.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4084699C0F5D9CF900FDCA37 /* crash_report_sender.icns */; };
 		8DC2EF570486A6940098B216 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7B1FEA5585E11CA2CBB /* Cocoa.framework */; };
+		F91AF5D00FD60393009D8BE2 /* BreakpadFramework_Test.mm in Sources */ = {isa = PBXBuildFile; fileRef = F91AF5CF0FD60393009D8BE2 /* BreakpadFramework_Test.mm */; };
+		F91AF6210FD60784009D8BE2 /* Breakpad.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DC2EF5B0486A6940098B216 /* Breakpad.framework */; };
 		F9286B3A0F7EB25800A4DCC8 /* InspectorMain.mm in Sources */ = {isa = PBXBuildFile; fileRef = F9286B390F7EB25800A4DCC8 /* InspectorMain.mm */; };
 		F92C53B80ECCE7B3009BE4BA /* Inspector.mm in Sources */ = {isa = PBXBuildFile; fileRef = F92C53B70ECCE7B3009BE4BA /* Inspector.mm */; };
 		F92C554C0ECCF534009BE4BA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0867D69BFE84028FC02AAC07 /* Foundation.framework */; };
@@ -105,6 +107,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F91AF6370FD60A74009D8BE2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8DC2EF4F0486A6940098B216;
+			remoteInfo = Breakpad;
+		};
 		F92C564D0ECD10E5009BE4BA /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
@@ -132,13 +141,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = F93803BD0F80820F004D428B;
 			remoteInfo = generator_test;
-		};
-		F93DE2FD0F82C3C900608B94 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = F93DE2D00F82A67300608B94;
-			remoteInfo = minidump_file_writer_unittest;
 		};
 		F93DE36F0F82CC1300608B94 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -228,6 +230,7 @@
 		33880C7F0F9E097100817F82 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = sender/English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		4084699C0F5D9CF900FDCA37 /* crash_report_sender.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = crash_report_sender.icns; path = sender/crash_report_sender.icns; sourceTree = "<group>"; };
 		8DC2EF5B0486A6940098B216 /* Breakpad.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Breakpad.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F91AF5CF0FD60393009D8BE2 /* BreakpadFramework_Test.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = BreakpadFramework_Test.mm; path = tests/BreakpadFramework_Test.mm; sourceTree = "<group>"; };
 		F9286B380F7EB25800A4DCC8 /* Inspector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Inspector.h; path = crash_generation/Inspector.h; sourceTree = "<group>"; };
 		F9286B390F7EB25800A4DCC8 /* InspectorMain.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = InspectorMain.mm; path = crash_generation/InspectorMain.mm; sourceTree = "<group>"; };
 		F92C53540ECCE349009BE4BA /* Inspector */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Inspector; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -375,6 +378,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F91AF6210FD60784009D8BE2 /* Breakpad.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -564,6 +568,7 @@
 			children = (
 				F9C77DE00F7DD7E30045F7DB /* SimpleStringDictionaryTest.h */,
 				F9C77DE10F7DD7E30045F7DB /* SimpleStringDictionaryTest.mm */,
+				F91AF5CF0FD60393009D8BE2 /* BreakpadFramework_Test.mm */,
 			);
 			name = tests;
 			sourceTree = "<group>";
@@ -754,8 +759,8 @@
 			);
 			dependencies = (
 				F93DE2FC0F82C3C600608B94 /* PBXTargetDependency */,
-				F93DE2FE0F82C3C900608B94 /* PBXTargetDependency */,
 				F93DE3700F82CC1300608B94 /* PBXTargetDependency */,
+				F91AF6380FD60A74009D8BE2 /* PBXTargetDependency */,
 			);
 			name = UnitTests;
 			productName = UnitTests;
@@ -871,7 +876,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Run the unit tests in this test bundle.\n\"${SYSTEM_DEVELOPER_DIR}/Tools/RunUnitTests\"\n\necho running minidump generator tests...\n\"${BUILT_PRODUCTS_DIR}/generator_test\"\necho Running minidump file writer tests...\n\"${BUILT_PRODUCTS_DIR}/minidump_file_writer_unittest\"\necho Running exception handler tests...\n\"${BUILT_PRODUCTS_DIR}/handler_test\"\n";
+			shellScript = "# Run the unit tests in this test bundle.\n\"${SYSTEM_DEVELOPER_DIR}/Tools/RunUnitTests\"\n\necho running minidump generator tests...\n\"${BUILT_PRODUCTS_DIR}/generator_test\"\necho Running exception handler tests...\n\"${BUILT_PRODUCTS_DIR}/handler_test\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -991,12 +996,18 @@
 				F9C77DE40F7DD82F0045F7DB /* SimpleStringDictionary.mm in Sources */,
 				F9C77DE20F7DD7E30045F7DB /* SimpleStringDictionaryTest.mm in Sources */,
 				F9C77E130F7DDF810045F7DB /* GTMSenTestCase.m in Sources */,
+				F91AF5D00FD60393009D8BE2 /* BreakpadFramework_Test.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		F91AF6380FD60A74009D8BE2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8DC2EF4F0486A6940098B216 /* Breakpad */;
+			targetProxy = F91AF6370FD60A74009D8BE2 /* PBXContainerItemProxy */;
+		};
 		F92C564E0ECD10E5009BE4BA /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F92C563B0ECD10B3009BE4BA /* breakpadUtilities */;
@@ -1016,11 +1027,6 @@
 			isa = PBXTargetDependency;
 			target = F93803BD0F80820F004D428B /* generator_test */;
 			targetProxy = F93DE2FB0F82C3C600608B94 /* PBXContainerItemProxy */;
-		};
-		F93DE2FE0F82C3C900608B94 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = F93DE2D00F82A67300608B94 /* minidump_file_writer_unittest */;
-			targetProxy = F93DE2FD0F82C3C900608B94 /* PBXContainerItemProxy */;
 		};
 		F93DE3700F82CC1300608B94 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

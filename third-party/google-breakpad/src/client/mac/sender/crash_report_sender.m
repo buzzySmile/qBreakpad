@@ -115,7 +115,7 @@ NSString *const kDefaultServerType = @"google";
   NSRect newFrame = NSMakeRect(oldFrame.origin.x, oldFrame.origin.y,
                                NSWidth(oldFrame), newSize.height);
   [self setFrame:newFrame];
-  
+
   return newSize.height - NSHeight(oldFrame);
 }
 
@@ -217,7 +217,24 @@ NSString *const kDefaultServerType = @"google";
 
 // Returns a dictionary that can be used to map Breakpad parameter names to
 // URL parameter names.
-- (NSDictionary *)dictionaryForServerType:(NSString *)serverType;
+- (NSMutableDictionary *)dictionaryForServerType:(NSString *)serverType;
+
+// Helper method to set HTTP parameters based on server type.  This is
+// called right before the upload - crashParameters will contain, on exit,
+// URL parameters that should be sent with the minidump.
+- (BOOL)populateServerDictionary:(NSMutableDictionary *)crashParameters;
+
+// Initialization helper to create dictionaries mapping Breakpad
+// parameters to URL parameters
+- (void)createServerParameterDictionaries;
+
+// Accessor method for the URL parameter dictionary
+- (NSMutableDictionary *)urlParameterDictionary;
+
+// This method adds a key/value pair to the dictionary that
+// will be uploaded to the crash server.
+- (void)addServerParameter:(id)value forKey:(NSString *)key;
+
 @end
 
 @implementation Reporter
@@ -308,7 +325,24 @@ NSString *const kDefaultServerType = @"google";
     id value = [[NSString alloc] initWithData:data
                                      encoding:NSUTF8StringEncoding];
 
-    [parameters_ setObject:value ? value : data forKey:key];
+    // If the keyname is prefixed by BREAKPAD_SERVER_PARAMETER_PREFIX
+    // that indicates that it should be uploaded to the server along
+    // with the minidump, so we treat it specially.
+    if ([key hasPrefix:@BREAKPAD_SERVER_PARAMETER_PREFIX]) {
+      NSString *urlParameterKey =
+        [key substringFromIndex:[@BREAKPAD_SERVER_PARAMETER_PREFIX length]];
+      if ([urlParameterKey length]) {
+        if (value) {
+          [self addServerParameter:value
+                            forKey:urlParameterKey];
+        } else {
+          [self addServerParameter:data
+                            forKey:urlParameterKey];
+        }
+      }
+    } else {
+      [parameters_ setObject:(value ? value : data) forKey:key];
+    }
     [value release];
   }
 
@@ -743,6 +777,7 @@ doCommandBySelector:(SEL)commandSelector {
   serverDictionary_ = [[NSMutableDictionary alloc] init];
   socorroDictionary_ = [[NSMutableDictionary alloc] init];
   googleDictionary_ = [[NSMutableDictionary alloc] init];
+  extraServerVars_ = [[NSMutableDictionary alloc] init];
 
   [serverDictionary_ setObject:socorroDictionary_ forKey:kSocorroServerType];
   [serverDictionary_ setObject:googleDictionary_ forKey:kGoogleServerType];
@@ -752,8 +787,6 @@ doCommandBySelector:(SEL)commandSelector {
   [googleDictionary_ setObject:@"comments" forKey:@BREAKPAD_COMMENTS];
   [googleDictionary_ setObject:@"prod" forKey:@BREAKPAD_PRODUCT];
   [googleDictionary_ setObject:@"ver" forKey:@BREAKPAD_VERSION];
-  // TODO: just for testing, google's server doesn't support it
-  [googleDictionary_ setObject:@"buildid" forKey:@BREAKPAD_BUILD_ID];
 
   [socorroDictionary_ setObject:@"Comments" forKey:@BREAKPAD_COMMENTS];
   [socorroDictionary_ setObject:@"CrashTime"
@@ -766,21 +799,23 @@ doCommandBySelector:(SEL)commandSelector {
                          forKey:@BREAKPAD_PRODUCT];
   [socorroDictionary_ setObject:@"ProductName"
                          forKey:@BREAKPAD_PRODUCT];
-  [socorroDictionary_ setObject:@"BuildID"
-                         forKey:@BREAKPAD_BUILD_ID];
 }
 
-- (NSDictionary *)dictionaryForServerType:(NSString *)serverType {
+- (NSMutableDictionary *)dictionaryForServerType:(NSString *)serverType {
   if (serverType == nil || [serverType length] == 0) {
     return [serverDictionary_ objectForKey:kDefaultServerType];
   }
   return [serverDictionary_ objectForKey:serverType];
 }
 
-// Helper method to set HTTP parameters based on server type
-- (BOOL)setPostParametersFromDictionary:(NSMutableDictionary *)crashParameters {
+- (NSMutableDictionary *)urlParameterDictionary {
   NSString *serverType = [parameters_ objectForKey:@BREAKPAD_SERVER_TYPE];
-  NSDictionary *urlParameterNames = [self dictionaryForServerType:serverType];
+  return [self dictionaryForServerType:serverType];
+
+}
+
+- (BOOL)populateServerDictionary:(NSMutableDictionary *)crashParameters {
+  NSDictionary *urlParameterNames = [self urlParameterDictionary];
 
   id key;
   NSEnumerator *enumerator = [parameters_ keyEnumerator];
@@ -802,7 +837,22 @@ doCommandBySelector:(SEL)commandSelector {
                           forKey:urlParameter];
     }
   }
+
+  // Now, add the parameters that were added by the application.
+  enumerator = [extraServerVars_ keyEnumerator];
+
+  while ((key = [enumerator nextObject])) {
+    NSString *urlParameterName = (NSString *)key;
+    NSString *urlParameterValue =
+      [extraServerVars_ objectForKey:urlParameterName];
+    [crashParameters setObject:urlParameterValue
+                        forKey:urlParameterName];
+  }
   return YES;
+}
+
+- (void)addServerParameter:(id)value forKey:(NSString *)key {
+  [extraServerVars_ setObject:value forKey:key];
 }
 
 //=============================================================================
@@ -811,7 +861,7 @@ doCommandBySelector:(SEL)commandSelector {
   HTTPMultipartUpload *upload = [[HTTPMultipartUpload alloc] initWithURL:url];
   NSMutableDictionary *uploadParameters = [NSMutableDictionary dictionary];
 
-  if (![self setPostParametersFromDictionary:uploadParameters]) {
+  if (![self populateServerDictionary:uploadParameters]) {
     return;
   }
 
@@ -886,6 +936,7 @@ doCommandBySelector:(SEL)commandSelector {
   [googleDictionary_ release];
   [socorroDictionary_ release];
   [serverDictionary_ release];
+  [extraServerVars_ release];
   [super dealloc];
 }
 

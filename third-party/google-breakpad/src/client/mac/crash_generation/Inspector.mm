@@ -208,14 +208,21 @@ void Inspector::Inspect(const char *receive_port_name) {
 
     if (result == KERN_SUCCESS) {
       // Inspect the task and write a minidump file.
-      InspectTask();
+      bool wrote_minidump = InspectTask();
 
       // Send acknowledgement to the crashed process that the inspection
       // has finished.  It will then be able to cleanly exit.
-      if (SendAcknowledgement() == KERN_SUCCESS) {
+      // The return value is ignored because failure isn't fatal. If the process
+      // didn't get the message there's nothing we can do, and we still want to
+      // send the report.
+      SendAcknowledgement();
+
+      if (wrote_minidump) {
         // Ask the user if he wants to upload the crash report to a server,
         // and do so if he agrees.
         LaunchReporter(config_file_.GetFilePath());
+      } else {
+        fprintf(stderr, "Inspection of crashed process failed\n");
       }
 
       // Now that we're done reading messages, cleanup the service, but only
@@ -360,7 +367,7 @@ void Inspector::SetCrashTimeParameters() {
 bool Inspector::InspectTask() {
   // keep the task quiet while we're looking at it
   task_suspend(remote_task_);
-  DEBUGLOG(stderr, "Suspsended Remote task\n");
+  DEBUGLOG(stderr, "Suspended Remote task\n");
 
   NSString *minidumpDir;
 
@@ -377,13 +384,19 @@ bool Inspector::InspectTask() {
                                           YES);
 
     NSString *applicationSupportDirectory =
-      [libraryDirectories objectAtIndex:0];
+        [libraryDirectories objectAtIndex:0];
+    NSString *library_subdirectory = [NSString 
+        stringWithUTF8String:kDefaultLibrarySubdirectory];
+    NSString *breakpad_product = [NSString 
+        stringWithUTF8String:config_params_.GetValueForKey(BREAKPAD_PRODUCT)];
+        
+    NSArray *path_components = [NSArray
+        arrayWithObjects:applicationSupportDirectory,
+                         library_subdirectory,
+                         breakpad_product,
+                         nil];
 
-    minidumpDir =
-      [NSString stringWithFormat:@"%@/%s/%s",
-                applicationSupportDirectory,
-                kDefaultLibrarySubdirectory,
-                config_params_.GetValueForKey(BREAKPAD_PRODUCT)];
+    minidumpDir = [NSString pathWithComponents:path_components];
   } else {
     minidumpDir = [[NSString stringWithUTF8String:minidumpDirectory]
                     stringByExpandingTildeInPath];
@@ -393,6 +406,24 @@ bool Inspector::InspectTask() {
            [minidumpDir UTF8String]);
 
   MinidumpLocation minidumpLocation(minidumpDir);
+
+  // Obscure bug alert:
+  // Don't use [NSString stringWithFormat] to build up the path here since it
+  // assumes system encoding and in RTL locales will prepend an LTR override
+  // character for paths beginning with '/' which fileSystemRepresentation does
+  // not remove. Filed as rdar://6889706 .
+  NSString *path_ns = [NSString
+      stringWithUTF8String:minidumpLocation.GetPath()];
+  NSString *pathid_ns = [NSString
+      stringWithUTF8String:minidumpLocation.GetID()];
+  NSString *minidumpPath = [path_ns stringByAppendingPathComponent:pathid_ns];
+  minidumpPath = [minidumpPath 
+      stringByAppendingPathExtension:@"dmp"];
+  
+  DEBUGLOG(stderr, 
+           "minidump path (%s)\n",
+           [minidumpPath UTF8String]);
+
 
   config_file_.WriteFile( &config_params_,
                           minidumpLocation.GetPath(),
@@ -407,16 +438,14 @@ bool Inspector::InspectTask() {
                                       crashing_thread_);
   }
 
-  NSString *minidumpPath = [NSString stringWithFormat:@"%s/%s.dmp",
-    minidumpLocation.GetPath(), minidumpLocation.GetID()];
-    DEBUGLOG(stderr, 
-           "minidump path (%s)\n",
-           [minidumpPath UTF8String]);
-
 
   bool result = generator.Write([minidumpPath fileSystemRepresentation]);
 
-  DEBUGLOG(stderr, "Wrote minidump - %s\n", result ? "OK" : "FAILED");
+  if (result) {
+    DEBUGLOG(stderr, "Wrote minidump - OK\n");
+  } else {
+    DEBUGLOG(stderr, "Error writing minidump - errno=%s\n",  strerror(errno));
+  }
 
   // let the task continue
   task_resume(remote_task_);

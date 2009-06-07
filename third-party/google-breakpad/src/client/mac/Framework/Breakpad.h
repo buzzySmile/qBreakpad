@@ -81,15 +81,15 @@ extern "C" {
 #define BREAKPAD_REQUEST_EMAIL         "BreakpadRequestEmail"
 #define BREAKPAD_EMAIL                 "BreakpadEmail"
 #define BREAKPAD_SERVER_TYPE           "BreakpadServerType"
-// TODO(nealsid) find a better way to support server-specific
-// parameters without having to rebuild Breakpad
-#define BREAKPAD_BUILD_ID              "BreakpadBuildID"
+#define BREAKPAD_SERVER_PARAMETER_DICT "BreakpadServerParameters"
 
 // The keys below are NOT user supplied, and are used internally.
-#define BREAKPAD_PROCESS_START_TIME    "BreakpadProcStartTime"
-#define BREAKPAD_PROCESS_UP_TIME       "BreakpadProcessUpTime"
-#define BREAKPAD_PROCESS_CRASH_TIME    "BreakpadProcessCrashTime"
-#define BREAKPAD_LOGFILE_KEY_PREFIX    "BreakpadAppLogFile"
+#define BREAKPAD_PROCESS_START_TIME       "BreakpadProcStartTime"
+#define BREAKPAD_PROCESS_UP_TIME          "BreakpadProcessUpTime"
+#define BREAKPAD_PROCESS_CRASH_TIME       "BreakpadProcessCrashTime"
+#define BREAKPAD_LOGFILE_KEY_PREFIX       "BreakpadAppLogFile"
+#define BREAKPAD_SERVER_PARAMETER_PREFIX  "BreakpadServerParameterPrefix_"
+
 // Optional user-defined function to dec to decide if we should handle
 // this crash or forward it along.
 // Return true if you want Breakpad to handle it.
@@ -98,7 +98,8 @@ extern "C" {
 // (which means the next exception handler will take the exception)
 typedef bool (*BreakpadFilterCallback)(int exception_type,
                                        int exception_code,
-                                       mach_port_t crashing_thread);
+                                       mach_port_t crashing_thread,
+                                       void *context);
 
 // Create a new BreakpadRef object and install it as an exception
 // handler.  The |parameters| will typically be the contents of your
@@ -179,8 +180,15 @@ typedef bool (*BreakpadFilterCallback)(int exception_type,
 //                                other types, see the function in
 //                                crash_report_sender.m that maps parameters to
 //                                URL parameters.  Defaults to 'google'.
-// BREAKPAD_BUILD_ID              A string parameter indicating build id.
-//                                Optional.
+//
+// BREAKPAD_SERVER_PARAMETER_DICT A plist dictionary of static
+//                                parameters that are uploaded to the
+//                                server.  The parameters are sent as
+//                                is to the crash server.  Their
+//                                content isn't added to the minidump
+//                                but pass as URL parameters when
+//                                uploading theminidump to the crash
+//                                server.
 //=============================================================================
 // The BREAKPAD_PRODUCT, BREAKPAD_VERSION and BREAKPAD_URL are
 // required to have non-NULL values.  By default, the BREAKPAD_PRODUCT
@@ -209,17 +217,31 @@ typedef bool (*BreakpadFilterCallback)(int exception_type,
 // completeness.  They are calculated by Breakpad during initialization &
 // crash-dump generation.
 //
-// BREAKPAD_PROCESS_START_TIME    The time the process started.
+// BREAKPAD_PROCESS_START_TIME       The time the process started.
 //
-// BREAKPAD_PROCESS_CRASH_TIME    The time the process crashed.
+// BREAKPAD_PROCESS_CRASH_TIME       The time the process crashed.
 //
-// BREAKPAD_PROCESS_UP_TIME       The total time the process has been running.
-//                                This parameter is not set until the
-//                                crash-dump-generation phase.
+// BREAKPAD_PROCESS_UP_TIME          The total time the process has been
+//                                   running.  This parameter is not set
+//                                   until the crash-dump-generation phase.
 //
-// BREAKPAD_LOGFILE_KEY_PREFIX    Used to find out which parameters in the
-//                                parameter dictionary correspond to log file
-//                                paths.
+// BREAKPAD_LOGFILE_KEY_PREFIX       Used to find out which parameters in the
+//                                   parameter dictionary correspond to log
+//                                   file paths.
+//
+// BREAKPAD_SERVER_PARAMETER_PREFIX  This prefix is used by Breakpad
+//                                   internally, because Breakpad uses
+//                                   the same dictionary internally to
+//                                   track both its internal
+//                                   configuration parameters and
+//                                   parameters meant to be uploaded
+//                                   to the server.  This string is
+//                                   used internally by Breakpad to
+//                                   prefix user-supplied parameter
+//                                   names so those can be sent to the
+//                                   server without leaking Breakpad's
+//                                   internal values.
+//
 
 // Returns a new BreakpadRef object on success, NULL otherwise.
 BreakpadRef BreakpadCreate(NSDictionary *parameters);
@@ -227,26 +249,48 @@ BreakpadRef BreakpadCreate(NSDictionary *parameters);
 // Uninstall and release the data associated with |ref|.
 void BreakpadRelease(BreakpadRef ref);
 
-// Clients may set an optional callback which gets called when a crash occurs.
-// The callback function should return |true| if we should handle the crash,
-// generate a crash report, etc. or |false| if we should ignore it and forward
-// the crash (normally to CrashReporter)
+// Clients may set an optional callback which gets called when a crash
+// occurs.  The callback function should return |true| if we should
+// handle the crash, generate a crash report, etc. or |false| if we
+// should ignore it and forward the crash (normally to CrashReporter).
+// Context is a pointer to arbitrary data to make the callback with.
 void BreakpadSetFilterCallback(BreakpadRef ref,
-                               BreakpadFilterCallback callback);
+                               BreakpadFilterCallback callback,
+                               void *context);
 
-// User defined key and value string storage
-// All set keys will be uploaded with the minidump if a crash occurs
-// Keys and Values are limited to 255 bytes (256 - 1 for terminator).
-// NB this is BYTES not GLYPHS.
-// Anything longer than 255 bytes will be truncated. Note that the string is
-// converted to UTF8 before truncation, so any multibyte character that
-// straddles the 255 byte limit will be mangled.
+// User defined key and value string storage.  Generally this is used
+// to configure Breakpad's internal operation, such as whether the
+// crash_sender should prompt the user, or the filesystem location for
+// the minidump file.  See Breakpad.h for some parameters that can be
+// set.  Anything longer than 255 bytes will be truncated. Note that
+// the string is converted to UTF8 before truncation, so any multibyte
+// character that straddles the 255(256 - 1 for terminator) byte limit
+// will be mangled.
 //
-// A maximum number of 64 key/value pairs are supported.  An assert() will fire
-// if more than this number are set.
+// A maximum number of 64 key/value pairs are supported.  An assert()
+// will fire if more than this number are set.  Unfortunately, right
+// now, the same dictionary is used for both Breakpad's parameters AND
+// the Upload parameters.
+//
+// TODO (nealsid): Investigate how necessary this is if we don't
+// automatically upload parameters to the server anymore.
+// TODO (nealsid): separate server parameter dictionary from the
+// dictionary used to configure Breakpad, and document limits for each
+// independently.
 void BreakpadSetKeyValue(BreakpadRef ref, NSString *key, NSString *value);
 NSString *BreakpadKeyValue(BreakpadRef ref, NSString *key);
 void BreakpadRemoveKeyValue(BreakpadRef ref, NSString *key);
+
+// You can use this method to specify parameters that will be uploaded
+// to the crash server.  They will be automatically encoded as
+// necessary.  Note that as mentioned above there are limits on both
+// the number of keys and their length.
+void BreakpadAddUploadParameter(BreakpadRef ref, NSString *key,
+				NSString *value);
+
+// This method will remove a previously-added parameter from the
+// upload parameter set.
+void BreakpadRemoveUploadParameter(BreakpadRef ref, NSString *key);
 
 // Add a log file for Breakpad to read and send upon crash dump
 void BreakpadAddLogFile(BreakpadRef ref, NSString *logPathname);
