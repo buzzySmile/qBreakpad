@@ -76,20 +76,21 @@ bool launcher(const char* program, const char* const arguments[])
 
 
 #if defined(Q_OS_WIN32)
-bool DumpCallback(const wchar_t* _dump_dir,
-                const wchar_t* _minidump_id,
-                void* context,
-                EXCEPTION_POINTERS* exinfo,
-                MDRawAssertionInfo* assertion,
-                bool success)
+bool DumpCallback(const wchar_t* dump_path,
+                  const wchar_t* minidump_id,
+                  void* context,
+                  EXCEPTION_POINTERS* exinfo,
+                  MDRawAssertionInfo* assertion,
+                  bool succeeded)
 #else
 bool DumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,
                   void* context,
                   bool succeeded)
 #endif
 {
-    Q_UNUSED(succeeded)
+#ifdef Q_OS_LINUX
     Q_UNUSED(descriptor);
+#endif
     Q_UNUSED(context);
 #if defined(Q_OS_WIN32)
     Q_UNUSED(assertion);
@@ -99,9 +100,16 @@ bool DumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,
         NO STACK USE, NO HEAP USE THERE !!!
         Creating QString's, using qDebug, etc. - everything is crash-unfriendly.
     */
-
     // But I'm brave man.
+
+#ifdef Q_OS_LINUX
     qDebug("%s, dump path: %s\n", succeeded ? "Succeed to write minidump" : "Failed to write minidump", descriptor.path());
+#endif
+
+#ifdef Q_OS_WIN32
+    QString path = QString::fromWCharArray(dump_path) + QLatin1String("/") + QString::fromWCharArray(minidump_id);
+    qDebug("%s, dump path: %s\n", succeeded ? "Succeed to write minidump" : "Failed to write minidump", qPrintable(path));
+#endif
 
     launcher(GlobalHandlerPrivate::reporter_, 0);
     return (GlobalHandlerPrivate::reportCrashesToSystem_ == ReportUnhandled) ? true : false;
@@ -155,7 +163,8 @@ void GlobalHandler::setDumpPath(const QString& path)
                                                         /*FilterCallback*/ 0, DumpCallback, /*context*/ 0, true, -1);
 #else
     d->handler_ = new google_breakpad::ExceptionHandler(absPath.toStdWString(), /*FilterCallback*/ 0,
-                                                        DumpCallback, /*context*/ 0, true, -1);
+                                                        DumpCallback, /*context*/ 0,
+                                                        google_breakpad::ExceptionHandler::HANDLER_ALL);
 #endif
 }
 

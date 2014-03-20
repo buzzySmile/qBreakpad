@@ -1,5 +1,5 @@
 TEMPLATE = lib
-TARGET = $$PWD/../breakpad-qt-handler
+TARGET = breakpad-qt-handler
 VERSION = 0.3.0
 
 include($$PWD/../conf.pri)
