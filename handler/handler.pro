@@ -9,6 +9,9 @@ QT -= gui
 
 OBJECTS_DIR = _build/obj
 MOC_DIR = _build
+win32 {
+    DESTDIR = $$OUT_PWD
+}
 
 DEFINES += QT_NO_CAST_TO_ASCII
 DEFINES += QT_NO_CAST_FROM_ASCII

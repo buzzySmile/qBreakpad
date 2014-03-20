@@ -8,11 +8,7 @@ CONFIG += thread exceptions rtti stl
 SOURCES += main.cpp
 
 include($$PWD/../../breakpad-qt-handler.pri)
-release {
-    QMAKE_LIBDIR += $$OUT_PWD/../../handler/release
-} else {
-    QMAKE_LIBDIR += $$OUT_PWD/../../handler/debug
-}
+QMAKE_LIBDIR += $$OUT_PWD/../../handler
 LIBS += -lbreakpad-qt-handler
 
 OBJECTS_DIR = _build/obj
