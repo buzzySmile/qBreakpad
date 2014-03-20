@@ -1,11 +1,13 @@
+m4_include(gtest/m4/acx_pthread.m4)
+
 AC_INIT([Google C++ Mocking Framework],
-        [1.1.0],
+        [1.6.0],
         [googlemock@googlegroups.com],
         [gmock])
 
 # Provide various options to initialize the Autoconf and configure processes.
 AC_PREREQ([2.59])
-AC_CONFIG_SRCDIR([./COPYING])
+AC_CONFIG_SRCDIR([./LICENSE])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([build-aux/config.h])
 AC_CONFIG_FILES([Makefile])
@@ -34,6 +36,25 @@ AS_IF([test "$PYTHON" != ":"],
 AM_CONDITIONAL([HAVE_PYTHON],[test "$PYTHON" != ":"])
 
 # TODO(chandlerc@google.com) Check for the necessary system headers.
+
+# Configure pthreads.
+AC_ARG_WITH([pthreads],
+            [AS_HELP_STRING([--with-pthreads],
+               [use pthreads (default is yes)])],
+            [with_pthreads=$withval],
+            [with_pthreads=check])
+
+have_pthreads=no
+AS_IF([test "x$with_pthreads" != "xno"],
+      [ACX_PTHREAD(
+        [],
+        [AS_IF([test "x$with_pthreads" != "xcheck"],
+               [AC_MSG_FAILURE(
+                 [--with-pthreads was specified, but unable to be used])])])
+       have_pthreads="$acx_pthread_ok"])
+AM_CONDITIONAL([HAVE_PTHREADS],[test "x$have_pthreads" == "xyes"])
+AC_SUBST(PTHREAD_CFLAGS)
+AC_SUBST(PTHREAD_LIBS)
 
 # GoogleMock currently has hard dependencies upon GoogleTest above and beyond
 # running its own test suite, so we both provide our own version in
@@ -80,7 +101,7 @@ AC_ARG_VAR([GTEST_VERSION],
            [The version of Google Test available.])
 HAVE_BUILT_GTEST="no"
 
-GTEST_MIN_VERSION="1.2.1"
+GTEST_MIN_VERSION="1.6.0"
 
 AS_IF([test "x${enable_external_gtest}" = "xyes"],
       [# Begin filling in variables as we are able.

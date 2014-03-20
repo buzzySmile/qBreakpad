@@ -1,4 +1,4 @@
-// Copyright (c) 2007, Google Inc.
+// Copyright (c) 2010 Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -43,10 +43,10 @@
 #include <map>
 #include <vector>
 
+#include "common/scoped_ptr.h"
 #include "common/solaris/dump_symbols.h"
 #include "common/solaris/file_id.h"
 #include "common/solaris/guid_creator.h"
-#include "processor/scoped_ptr.h"
 
 // This namespace contains helper functions.
 namespace {
@@ -156,7 +156,7 @@ const char *kStrtabName = ".strtab";
 const int demangleLen = 20000;
 
 // Offset to the string table.
-u_int64_t stringOffset = 0;
+uint64_t stringOffset = 0;
 
 // Update the offset to the start of the string index of the next
 // object module for every N_ENDM stabs.
@@ -651,7 +651,7 @@ bool DumpSymbols::WriteSymbolFile(const std::string &obj_file, int sym_fd) {
     return false;
   void *obj_base = mmap(NULL, st.st_size,
                         PROT_READ, MAP_PRIVATE, obj_fd, 0);
-  if (obj_base == MAP_FAILED))
+  if (obj_base == MAP_FAILED)
     return false;
   MmapWrapper map_wrapper(obj_base, st.st_size);
   GElf_Ehdr elf_header;

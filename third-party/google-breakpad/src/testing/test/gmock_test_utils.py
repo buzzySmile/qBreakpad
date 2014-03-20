@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/env python
 #
 # Copyright 2006, Google Inc.
 # All rights reserved.
@@ -35,65 +35,42 @@ __author__ = 'wan@google.com (Zhanyong Wan)'
 
 import os
 import sys
-import unittest
 
 
-# Initially maps a flag to its default value.  After
-# _ParseAndStripGMockFlags() is called, maps a flag to its actual
-# value.
-_flag_map = {'gmock_source_dir': os.path.dirname(sys.argv[0]),
-             'gmock_build_dir': os.path.dirname(sys.argv[0])}
-_gmock_flags_are_parsed = False
+# Determines path to gtest_test_utils and imports it.
+SCRIPT_DIR = os.path.dirname(__file__) or '.'
 
+# isdir resolves symbolic links.
+gtest_tests_util_dir = os.path.join(SCRIPT_DIR, '../gtest/test')
+if os.path.isdir(gtest_tests_util_dir):
+  GTEST_TESTS_UTIL_DIR = gtest_tests_util_dir
+else:
+  GTEST_TESTS_UTIL_DIR = os.path.join(SCRIPT_DIR, '../../gtest/test')
 
-def _ParseAndStripGMockFlags(argv):
-  """Parses and strips Google Test flags from argv.  This is idempotent."""
-
-  global _gmock_flags_are_parsed
-  if _gmock_flags_are_parsed:
-    return
-
-  _gmock_flags_are_parsed = True
-  for flag in _flag_map:
-    # The environment variable overrides the default value.
-    if flag.upper() in os.environ:
-      _flag_map[flag] = os.environ[flag.upper()]
-
-    # The command line flag overrides the environment variable.
-    i = 1  # Skips the program name.
-    while i < len(argv):
-      prefix = '--' + flag + '='
-      if argv[i].startswith(prefix):
-        _flag_map[flag] = argv[i][len(prefix):]
-        del argv[i]
-        break
-      else:
-        # We don't increment i in case we just found a --gmock_* flag
-        # and removed it from argv.
-        i += 1
-
-
-def GetFlag(flag):
-  """Returns the value of the given flag."""
-
-  # In case GetFlag() is called before Main(), we always call
-  # _ParseAndStripGMockFlags() here to make sure the --gmock_* flags
-  # are parsed.
-  _ParseAndStripGMockFlags(sys.argv)
-
-  return _flag_map[flag]
+sys.path.append(GTEST_TESTS_UTIL_DIR)
+import gtest_test_utils  # pylint: disable-msg=C6204
 
 
 def GetSourceDir():
   """Returns the absolute path of the directory where the .py files are."""
 
-  return os.path.abspath(GetFlag('gmock_source_dir'))
+  return gtest_test_utils.GetSourceDir()
 
 
-def GetBuildDir():
-  """Returns the absolute path of the directory where the test binaries are."""
+def GetTestExecutablePath(executable_name):
+  """Returns the absolute path of the test binary given its name.
 
-  return os.path.abspath(GetFlag('gmock_build_dir'))
+  The function will print a message and abort the program if the resulting file
+  doesn't exist.
+
+  Args:
+    executable_name: name of the test binary that the test script runs.
+
+  Returns:
+    The absolute path of the test binary.
+  """
+
+  return gtest_test_utils.GetTestExecutablePath(executable_name)
 
 
 def GetExitStatus(exit_code):
@@ -116,11 +93,19 @@ def GetExitStatus(exit_code):
       return -1
 
 
+# Suppresses the "Invalid const name" lint complaint
+# pylint: disable-msg=C6409
+
+# Exposes Subprocess from gtest_test_utils.
+Subprocess = gtest_test_utils.Subprocess
+
+# Exposes TestCase from gtest_test_utils.
+TestCase = gtest_test_utils.TestCase
+
+# pylint: enable-msg=C6409
+
+
 def Main():
   """Runs the unit test."""
 
-  # We must call _ParseAndStripGMockFlags() before calling
-  # unittest.main().  Otherwise the latter will be confused by the
-  # --gmock_* flags.
-  _ParseAndStripGMockFlags(sys.argv)
-  unittest.main()
+  gtest_test_utils.Main()

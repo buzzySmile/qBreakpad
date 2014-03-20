@@ -1,4 +1,4 @@
-// Copyright (c) 2006, Google Inc.
+// Copyright (c) 2010 Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,14 @@
 // Author: Mark Mentovai
 
 
-#include <climits>
-#include <cstdio>
+#include <limits.h>
+#include <stdio.h>
 
 #include "processor/range_map-inl.h"
 
+#include "common/scoped_ptr.h"
 #include "processor/linked_ptr.h"
 #include "processor/logging.h"
-#include "processor/scoped_ptr.h"
-
 
 namespace {
 
@@ -165,8 +164,8 @@ static bool RetrieveTest(TestMap *range_map, const RangeTest *range_test) {
       }
 
       linked_ptr<CountedObject> object;
-      AddressType retrieved_base;
-      AddressType retrieved_size;
+      AddressType retrieved_base = AddressType();
+      AddressType retrieved_size = AddressType();
       bool retrieved = range_map->RetrieveRange(address, &object,
                                                 &retrieved_base,
                                                 &retrieved_size);
@@ -209,11 +208,12 @@ static bool RetrieveTest(TestMap *range_map, const RangeTest *range_test) {
         expected_nearest = false;
 
       linked_ptr<CountedObject> nearest_object;
-      AddressType nearest_base;
+      AddressType nearest_base = AddressType();
+      AddressType nearest_size = AddressType();
       bool retrieved_nearest = range_map->RetrieveNearestRange(address,
                                                                &nearest_object,
                                                                &nearest_base,
-                                                               NULL);
+                                                               &nearest_size);
 
       // When checking one greater than the high side, RetrieveNearestRange
       // should usually return the test range.  When a different range begins
@@ -235,6 +235,22 @@ static bool RetrieveTest(TestMap *range_map, const RangeTest *range_test) {
                         offset,
                         expected_nearest ? "true" : "false",
                         observed_nearest ? "true" : "false");
+        return false;
+      }
+
+      // If a range was successfully retrieved, check that the returned
+      // bounds match the range as stored.
+      if (expected_nearest &&
+          (nearest_base != range_test->address ||
+           nearest_size != range_test->size)) {
+        fprintf(stderr, "FAILED: "
+                        "RetrieveNearestRange id %d, side %d, offset %d, "
+                        "expected base/size %d/%d, observed %d/%d\n",
+                        range_test->id,
+                        side,
+                        offset,
+                        range_test->address, range_test->size,
+                        nearest_base, nearest_size);
         return false;
       }
     }
@@ -303,6 +319,43 @@ static bool RetrieveIndexTest(TestMap *range_map, int set) {
             "expected failure, observed success\n",
             set, object_count);
     return false;
+  }
+
+  return true;
+}
+
+// Additional RetriveAtIndex test to expose the bug in RetrieveRangeAtIndex().
+// Bug info: RetrieveRangeAtIndex() previously retrieves the high address of
+// entry, however, it is supposed to retrieve the base address of entry as
+// stated in the comment in range_map.h.
+static bool RetriveAtIndexTest2() {
+  scoped_ptr<TestMap> range_map(new TestMap());
+
+  // Store ranges with base address = 2 * object_id:
+  const int range_size = 2;
+  for (int object_id = 0; object_id < 100; ++object_id) {
+    linked_ptr<CountedObject> object(new CountedObject(object_id));
+    int base_address = 2 * object_id;
+    range_map->StoreRange(base_address, range_size, object);
+  }
+
+  linked_ptr<CountedObject> object;
+  int object_count = range_map->GetCount();
+  for (int object_index = 0; object_index < object_count; ++object_index) {
+    AddressType base;
+    if (!range_map->RetrieveRangeAtIndex(object_index, &object, &base, NULL)) {
+      fprintf(stderr, "FAILED: RetrieveAtIndexTest2 index %d, "
+              "expected success, observed failure\n", object_index);
+      return false;
+    }
+
+    int expected_base = 2 * object->id();
+    if (base != expected_base) {
+      fprintf(stderr, "FAILED: RetriveAtIndexTest2 index %d, "
+              "expected base %d, observed base %d",
+              object_index, expected_base, base);
+      return false;
+    }
   }
 
   return true;
@@ -478,6 +531,11 @@ static bool RunTests() {
 
       return false;
     }
+  }
+
+  if (!RetriveAtIndexTest2()) {
+    fprintf(stderr, "FAILED: did not pass RetrieveAtIndexTest2()\n");
+    return false;
   }
 
   return true;

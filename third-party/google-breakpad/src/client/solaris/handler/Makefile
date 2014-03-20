@@ -40,7 +40,7 @@ BIN_DIR=.
 
 THREAD_SRC=solaris_lwp.cc
 SHARE_SRC=../../minidump_file_writer.cc\
-	  ../../../common/md5.c\
+	  ../../../common/md5.cc\
 	  ../../../common/string_conversion.cc\
 	  ../../../common/solaris/file_id.cc\
 	  minidump_generator.cc

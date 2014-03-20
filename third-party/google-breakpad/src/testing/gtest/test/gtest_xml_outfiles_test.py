@@ -33,22 +33,19 @@
 
 __author__ = "keith.ray@gmail.com (Keith Ray)"
 
-import gtest_test_utils
 import os
-import sys
-import tempfile
-import unittest
-
 from xml.dom import minidom, Node
 
+import gtest_test_utils
 import gtest_xml_test_utils
 
 
+GTEST_OUTPUT_SUBDIR = "xml_outfiles"
 GTEST_OUTPUT_1_TEST = "gtest_xml_outfile1_test_"
 GTEST_OUTPUT_2_TEST = "gtest_xml_outfile2_test_"
 
 EXPECTED_XML_1 = """<?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="1" failures="0" disabled="0" errors="0" time="*" name="AllTests">
+<testsuites tests="1" failures="0" disabled="0" errors="0" time="*" timestamp="*" name="AllTests">
   <testsuite name="PropertyOne" tests="1" failures="0" disabled="0" errors="0" time="*">
     <testcase name="TestSomeProperties" status="run" time="*" classname="PropertyOne" SetUpProp="1" TestSomeProperty="1" TearDownProp="1" />
   </testsuite>
@@ -56,7 +53,7 @@ EXPECTED_XML_1 = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 EXPECTED_XML_2 = """<?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="1" failures="0" disabled="0" errors="0" time="*" name="AllTests">
+<testsuites tests="1" failures="0" disabled="0" errors="0" time="*" timestamp="*" name="AllTests">
   <testsuite name="PropertyTwo" tests="1" failures="0" disabled="0" errors="0" time="*">
     <testcase name="TestSomeProperties" status="run" time="*" classname="PropertyTwo" SetUpProp="2" TestSomeProperty="2" TearDownProp="2" />
   </testsuite>
@@ -71,7 +68,8 @@ class GTestXMLOutFilesTest(gtest_xml_test_utils.GTestXMLTestCase):
     # We want the trailing '/' that the last "" provides in os.path.join, for
     # telling Google Test to create an output directory instead of a single file
     # for xml output.
-    self.output_dir_ = os.path.join(tempfile.mkdtemp(), "")
+    self.output_dir_ = os.path.join(gtest_test_utils.GetTempDir(),
+                                    GTEST_OUTPUT_SUBDIR, "")
     self.DeleteFilesAndDir()
 
   def tearDown(self):
@@ -87,7 +85,7 @@ class GTestXMLOutFilesTest(gtest_xml_test_utils.GTestXMLTestCase):
     except os.error:
       pass
     try:
-      os.removedirs(self.output_dir_)
+      os.rmdir(self.output_dir_)
     except os.error:
       pass
 
@@ -100,7 +98,8 @@ class GTestXMLOutFilesTest(gtest_xml_test_utils.GTestXMLTestCase):
   def _TestOutFile(self, test_name, expected_xml):
     gtest_prog_path = gtest_test_utils.GetTestExecutablePath(test_name)
     command = [gtest_prog_path, "--gtest_output=xml:%s" % self.output_dir_]
-    p = gtest_test_utils.Subprocess(command, working_dir=tempfile.mkdtemp())
+    p = gtest_test_utils.Subprocess(command,
+                                    working_dir=gtest_test_utils.GetTempDir())
     self.assert_(p.exited)
     self.assertEquals(0, p.exit_code)
 

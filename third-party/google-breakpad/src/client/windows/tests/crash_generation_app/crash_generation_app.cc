@@ -30,7 +30,17 @@
 // crash_generation_app.cpp : Defines the entry point for the application.
 //
 
-#include "precompile.h"
+#include "client/windows/tests/crash_generation_app/crash_generation_app.h"
+
+#include <windows.h>
+#include <tchar.h>
+
+#include "client/windows/crash_generation/client_info.h"
+#include "client/windows/crash_generation/crash_generation_server.h"
+#include "client/windows/handler/exception_handler.h"
+#include "client/windows/common/ipc_protocol.h"
+
+#include "client/windows/tests/crash_generation_app/abstract_class.h"
 
 namespace google_breakpad {
 
@@ -183,7 +193,7 @@ bool ShowDumpResults(const wchar_t* dump_path,
     delete [] text;
   }
 
-  AppendTextWorker(text);
+  QueueUserWorkItem(AppendTextWorker, text, WT_EXECUTEDEFAULT);
   return succeeded;
 }
 
@@ -227,7 +237,7 @@ static void _cdecl ShowClientCrashed(void* context,
   }
 
   wstring str_line;
-  for (int i = 0; i < custom_info.count; ++i) {
+  for (size_t i = 0; i < custom_info.count; ++i) {
     if (i > 0) {
       str_line += L", ";
     }
@@ -281,6 +291,8 @@ void CrashServerStart() {
                                            NULL,
                                            ShowClientExited,
                                            NULL,
+                                           NULL,
+                                           NULL,
                                            true,
                                            &dump_path);
 
@@ -333,9 +345,9 @@ void CleanUp() {
 
 // Processes messages for the main window.
 //
-// WM_COMMAND	- process the application menu.
-// WM_PAINT	- Paint the main window.
-// WM_DESTROY	- post a quit message and return.
+// WM_COMMAND - process the application menu.
+// WM_PAINT   - Paint the main window.
+// WM_DESTROY - post a quit message and return.
 LRESULT CALLBACK WndProc(HWND wnd,
                          UINT message,
                          WPARAM w_param,
@@ -345,13 +357,7 @@ LRESULT CALLBACK WndProc(HWND wnd,
   PAINTSTRUCT ps;
   HDC hdc;
 
-#pragma warning(push)
-#pragma warning(disable:4312)
-  // Disable warning	C4312: 'type cast' : conversion from 'LONG' to
-  // 'HINSTANCE' of greater size.
-  // The value returned by GetwindowLong in the case below returns unsigned.
-  HINSTANCE instance = (HINSTANCE)GetWindowLong(wnd, GWL_HINSTANCE);
-#pragma warning(pop)
+  HINSTANCE instance = (HINSTANCE)GetWindowLongPtr(wnd, GWLP_HINSTANCE);
 
   switch (message) {
     case WM_COMMAND:
@@ -403,16 +409,16 @@ LRESULT CALLBACK WndProc(HWND wnd,
                                             instance,
                                             NULL);
       break;
-    case WM_SIZE: 
-      // Make the edit control the size of the window's client area. 
-      MoveWindow(client_status_edit_box, 
+    case WM_SIZE:
+      // Make the edit control the size of the window's client area.
+      MoveWindow(client_status_edit_box,
                  0,
                  0,
                  LOWORD(l_param),        // width of client area.
                  HIWORD(l_param),        // height of client area.
                  TRUE);                  // repaint window.
       break;
-    case WM_SETFOCUS: 
+    case WM_SETFOCUS:
       SetFocus(client_status_edit_box);
       break;
     case WM_PAINT:
@@ -467,6 +473,7 @@ int APIENTRY _tWinMain(HINSTANCE instance,
 
   CustomClientInfo custom_info = {kCustomInfoEntries, kCustomInfoCount};
 
+  CrashServerStart();
   // This is needed for CRT to not show dialog for invalid param
   // failures and instead let the code handle it.
   _CrtSetReportMode(_CRT_ASSERT, 0);
@@ -488,7 +495,7 @@ int APIENTRY _tWinMain(HINSTANCE instance,
   MyRegisterClass(instance);
 
   // Perform application initialization.
-  if (!InitInstance (instance, command_show)) {
+  if (!InitInstance(instance, command_show)) {
     return FALSE;
   }
 
@@ -505,6 +512,5 @@ int APIENTRY _tWinMain(HINSTANCE instance,
     }
   }
 
-  return (int)msg.wParam;
+  return static_cast<int>(msg.wParam);
 }
-

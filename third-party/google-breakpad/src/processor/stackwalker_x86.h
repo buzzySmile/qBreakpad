@@ -1,4 +1,6 @@
-// Copyright (c) 2006, Google Inc.
+// -*- mode: c++ -*-
+
+// Copyright (c) 2010 Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -38,10 +40,13 @@
 #ifndef PROCESSOR_STACKWALKER_X86_H__
 #define PROCESSOR_STACKWALKER_X86_H__
 
+#include <vector>
 
 #include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/common/minidump_format.h"
 #include "google_breakpad/processor/stackwalker.h"
+#include "google_breakpad/processor/stack_frame_cpu.h"
+#include "processor/cfi_frame_info.h"
 
 namespace google_breakpad {
 
@@ -54,25 +59,55 @@ class StackwalkerX86 : public Stackwalker {
   // register state corresponding to the innermost called frame to be
   // included in the stack.  The other arguments are passed directly through
   // to the base Stackwalker constructor.
-  StackwalkerX86(const SystemInfo *system_info,
-                 const MDRawContextX86 *context,
-                 MemoryRegion *memory,
-                 const CodeModules *modules,
-                 SymbolSupplier *supplier,
-                 SourceLineResolverInterface *resolver);
+  StackwalkerX86(const SystemInfo* system_info,
+                 const MDRawContextX86* context,
+                 MemoryRegion* memory,
+                 const CodeModules* modules,
+                 StackFrameSymbolizer* frame_symbolizer);
 
  private:
+  // A STACK CFI-driven frame walker for the X86.
+  typedef SimpleCFIWalker<uint32_t, MDRawContextX86> CFIWalker;
+
   // Implementation of Stackwalker, using x86 context (%ebp, %esp, %eip) and
   // stack conventions (saved %ebp at [%ebp], saved %eip at 4[%ebp], or
-  // alternate conventions as guided by stack_frame_info_).
+  // alternate conventions as guided by any WindowsFrameInfo available for the
+  // code in question.).
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(
-      const CallStack *stack,
-      const vector< linked_ptr<StackFrameInfo> > &stack_frame_info);
+  virtual StackFrame* GetCallerFrame(const CallStack* stack,
+                                     bool stack_scan_allowed);
+
+  // Use windows_frame_info (derived from STACK WIN and FUNC records)
+  // to construct the frame that called frames.back(). The caller
+  // takes ownership of the returned frame. Return NULL on failure.
+  StackFrameX86* GetCallerByWindowsFrameInfo(
+      const vector<StackFrame*> &frames,
+      WindowsFrameInfo* windows_frame_info,
+      bool stack_scan_allowed);
+
+  // Use cfi_frame_info (derived from STACK CFI records) to construct
+  // the frame that called frames.back(). The caller takes ownership
+  // of the returned frame. Return NULL on failure.
+  StackFrameX86* GetCallerByCFIFrameInfo(const vector<StackFrame*> &frames,
+                                         CFIFrameInfo* cfi_frame_info);
+
+  // Assuming a traditional frame layout --- where the caller's %ebp
+  // has been pushed just after the return address and the callee's
+  // %ebp points to the saved %ebp --- construct the frame that called
+  // frames.back(). The caller takes ownership of the returned frame.
+  // Return NULL on failure.
+  StackFrameX86* GetCallerByEBPAtBase(const vector<StackFrame*> &frames,
+                                      bool stack_scan_allowed);
 
   // Stores the CPU context corresponding to the innermost stack frame to
   // be returned by GetContextFrame.
-  const MDRawContextX86 *context_;
+  const MDRawContextX86* context_;
+
+  // Our register map, for cfi_walker_.
+  static const CFIWalker::RegisterSet cfi_register_map_[];
+
+  // Our CFI frame walker.
+  const CFIWalker cfi_walker_;
 };
 
 

@@ -37,14 +37,32 @@
 #define CLIENT_MAC_HANDLER_EXCEPTION_HANDLER_H__
 
 #include <mach/mach.h>
+#include <TargetConditionals.h>
 
 #include <string>
+
+#include "client/mac/handler/ucontext_compat.h"
+#include "common/scoped_ptr.h"
+
+#if !TARGET_OS_IPHONE
+#include "client/mac/crash_generation/crash_generation_client.h"
+#endif
 
 namespace google_breakpad {
 
 using std::string;
 
 struct ExceptionParameters;
+
+enum HandlerThreadMessage {
+  // Message ID telling the handler thread to write a dump.
+  kWriteDumpMessage = 0,
+  // Message ID telling the handler thread to write a dump and include
+  // an exception stream.
+  kWriteDumpWithExceptionMessage = 1,
+  // Message ID telling the handler thread to quit.
+  kShutdownMessage = 2
+};
 
 class ExceptionHandler {
  public:
@@ -77,6 +95,7 @@ class ExceptionHandler {
   typedef bool (*DirectCallback)( void *context,
                                   int exception_type,
                                   int exception_code,
+                                  int exception_subcode,
                                   mach_port_t thread_name);
 
   // Creates a new ExceptionHandler instance to handle writing minidumps.
@@ -85,9 +104,12 @@ class ExceptionHandler {
   // If install_handler is true, then a minidump will be written whenever
   // an unhandled exception occurs.  If it is false, minidumps will only
   // be written when WriteMinidump is called.
+  // If port_name is non-NULL, attempt to perform out-of-process dump generation
+  // If port_name is NULL, in-process dump generation will be used.
   ExceptionHandler(const string &dump_path,
                    FilterCallback filter, MinidumpCallback callback,
-                   void *callback_context, bool install_handler);
+                   void *callback_context, bool install_handler,
+		   const char *port_name);
 
   // A special constructor if we want to bypass minidump writing and
   // simply get a callback with the exception information.
@@ -107,12 +129,40 @@ class ExceptionHandler {
 
   // Writes a minidump immediately.  This can be used to capture the
   // execution state independently of a crash.  Returns true on success.
-  bool WriteMinidump();
+  bool WriteMinidump() {
+    return WriteMinidump(false);
+  }
+
+  bool WriteMinidump(bool write_exception_stream);
 
   // Convenience form of WriteMinidump which does not require an
   // ExceptionHandler instance.
   static bool WriteMinidump(const string &dump_path, MinidumpCallback callback,
+                            void *callback_context) {
+    return WriteMinidump(dump_path, false, callback, callback_context);
+  }
+
+  static bool WriteMinidump(const string &dump_path,
+                            bool write_exception_stream,
+                            MinidumpCallback callback,
                             void *callback_context);
+
+  // Write a minidump of child immediately. This can be used to capture
+  // the execution state of a child process independently of a crash.
+  static bool WriteMinidumpForChild(mach_port_t child,
+				    mach_port_t child_blamed_thread,
+				    const std::string &dump_path,
+				    MinidumpCallback callback,
+				    void *callback_context);
+
+  // Returns whether out-of-process dump generation is used or not.
+  bool IsOutOfProcess() const {
+#if TARGET_OS_IPHONE
+    return false;
+#else
+    return crash_generation_client_.get() != NULL;
+#endif
+  }
 
  private:
   // Install the mach exception handler
@@ -129,17 +179,27 @@ class ExceptionHandler {
   // thread
   bool Teardown();
 
-  // Send an "empty" mach message to the exception handler.  Return true on
-  // success, false otherwise
-  bool SendEmptyMachMessage();
+  // Send a mach message to the exception handler.  Return true on
+  // success, false otherwise.
+  bool SendMessageToHandlerThread(HandlerThreadMessage message_id);
 
-  // All minidump writing goes through this one routine
-  bool WriteMinidumpWithException(int exception_type, int exception_code,
-                                  mach_port_t thread_name);
+  // All minidump writing goes through this one routine.
+  // |task_context| can be NULL. If not, it will be used to retrieve the
+  // context of the current thread, instead of using |thread_get_state|.
+  bool WriteMinidumpWithException(int exception_type,
+                                  int exception_code,
+                                  int exception_subcode,
+                                  breakpad_ucontext_t *task_context,
+                                  mach_port_t thread_name,
+                                  bool exit_after_write,
+                                  bool report_current_thread);
 
   // When installed, this static function will be call from a newly created
   // pthread with |this| as the argument
   static void *WaitForMessage(void *exception_handler_class);
+
+  // Signal handler for SIGABRT.
+  static void SignalHandler(int sig, siginfo_t* info, void* uc);
 
   // disallow copy ctor and operator=
   explicit ExceptionHandler(const ExceptionHandler &);
@@ -205,6 +265,15 @@ class ExceptionHandler {
 
   // True, if we're using the mutext to indicate when mindump writing occurs
   bool use_minidump_write_mutex_;
+
+  // Old signal handler for SIGABRT. Used to be able to restore it when
+  // uninstalling.
+  scoped_ptr<struct sigaction> old_handler_;
+
+#if !TARGET_OS_IPHONE
+  // Client for out-of-process dump generation.
+  scoped_ptr<CrashGenerationClient> crash_generation_client_;
+#endif
 };
 
 }  // namespace google_breakpad

@@ -1,4 +1,4 @@
-// Copyright (c) 2006, Google Inc.
+// Copyright (c) 2010 Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,86 +27,116 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// BasicSourceLineResolver implements SourceLineResolverInterface, using
-// address map files produced by a compatible writer, e.g. PDBSourceLineWriter.
+// basic_source_line_resolver.h: BasicSourceLineResolver is derived from
+// SourceLineResolverBase, and is a concrete implementation of
+// SourceLineResolverInterface, using address map files produced by a
+// compatible writer, e.g. PDBSourceLineWriter.
+//
+// see "processor/source_line_resolver_base.h"
+// and "source_line_resolver_interface.h" for more documentation.
 
 #ifndef GOOGLE_BREAKPAD_PROCESSOR_BASIC_SOURCE_LINE_RESOLVER_H__
 #define GOOGLE_BREAKPAD_PROCESSOR_BASIC_SOURCE_LINE_RESOLVER_H__
 
-// TODO: Platforms that have no hash_map can use map, at the likely cost of
-// performance.
-#ifdef __SUNPRO_CC
-#define BSLR_NO_HASH_MAP
-#endif  // __SUNPRO_CC
-
-#ifdef BSLR_NO_HASH_MAP
 #include <map>
-#else  // BSLR_NO_HASH_MAP
-#include <ext/hash_map>
-#endif  // BSLR_NO_HASH_MAP
+#include <string>
 
-#include "google_breakpad/processor/source_line_resolver_interface.h"
+#include "common/using_std_string.h"
+#include "google_breakpad/processor/source_line_resolver_base.h"
 
 namespace google_breakpad {
 
-using std::string;
-#ifdef BSLR_NO_HASH_MAP
 using std::map;
-#else  // BSLR_NO_HASH_MAP
-using __gnu_cxx::hash_map;
-#endif  // BSLR_NO_HASH_MAP
 
-class BasicSourceLineResolver : public SourceLineResolverInterface {
+class BasicSourceLineResolver : public SourceLineResolverBase {
  public:
   BasicSourceLineResolver();
-  virtual ~BasicSourceLineResolver();
+  virtual ~BasicSourceLineResolver() { }
 
-  // SourceLineResolverInterface methods, see source_line_resolver_interface.h
-  // for more details.
-
-  // Adds a module to this resolver, returning true on success.
-  // The given map_file is read into memory, and its symbols will be
-  // retained until the BasicSourceLineResolver is destroyed.
-  virtual bool LoadModule(const string &module_name, const string &map_file);
-
-  // Exactly the same as above, except the given map_buffer is used
-  // for symbols. 
-  virtual bool LoadModuleUsingMapBuffer(const string &module_name,
-                                        const string &map_buffer);
-
-
-  virtual bool HasModule(const string &module_name) const;
-
-  virtual StackFrameInfo* FillSourceLineInfo(StackFrame *frame) const;
+  using SourceLineResolverBase::LoadModule;
+  using SourceLineResolverBase::LoadModuleUsingMapBuffer;
+  using SourceLineResolverBase::LoadModuleUsingMemoryBuffer;
+  using SourceLineResolverBase::ShouldDeleteMemoryBufferAfterLoadModule;
+  using SourceLineResolverBase::UnloadModule;
+  using SourceLineResolverBase::HasModule;
+  using SourceLineResolverBase::IsModuleCorrupt;
+  using SourceLineResolverBase::FillSourceLineInfo;
+  using SourceLineResolverBase::FindWindowsFrameInfo;
+  using SourceLineResolverBase::FindCFIFrameInfo;
 
  private:
-  template<class T> class MemAddrMap;
-  struct Line;
-  struct Function;
-  struct PublicSymbol;
-  struct File;
-#ifdef BSLR_NO_HASH_MAP
-  struct CompareString {
-    bool operator()(const string &s1, const string &s2) const;
-  };
-#else  // BSLR_NO_HASH_MAP
-  struct HashString {
-    size_t operator()(const string &s) const;
-  };
-#endif  // BSLR_NO_HASH_MAP
-  class Module;
+  // friend declarations:
+  friend class BasicModuleFactory;
+  friend class ModuleComparer;
+  friend class ModuleSerializer;
+  template<class> friend class SimpleSerializer;
 
-  // All of the modules we've loaded
-#ifdef BSLR_NO_HASH_MAP
-  typedef map<string, Module*, CompareString> ModuleMap;
-#else  // BSLR_NO_HASH_MAP
-  typedef hash_map<string, Module*, HashString> ModuleMap;
-#endif  // BSLR_NO_HASH_MAP
-  ModuleMap *modules_;
+  // Function derives from SourceLineResolverBase::Function.
+  struct Function;
+  // Module implements SourceLineResolverBase::Module interface.
+  class Module;
 
   // Disallow unwanted copy ctor and assignment operator
   BasicSourceLineResolver(const BasicSourceLineResolver&);
   void operator=(const BasicSourceLineResolver&);
+};
+
+// Helper class, containing useful methods for parsing of Breakpad symbol files.
+class SymbolParseHelper {
+ public:
+  // Parses a |file_line| declaration.  Returns true on success.
+  // Format: FILE <id> <filename>.
+  // Notice, that this method modifies the input |file_line| which is why it
+  // can't be const.  On success, <id>, and <filename> are stored in |*index|,
+  // and |*filename|.  No allocation is done, |*filename| simply points inside
+  // |file_line|.
+  static bool ParseFile(char *file_line,   // in
+                        long *index,       // out
+                        char **filename);  // out
+
+  // Parses a |function_line| declaration.  Returns true on success.
+  // Format:  FUNC <address> <size> <stack_param_size> <name>.
+  // Notice, that this method modifies the input |function_line| which is why it
+  // can't be const.  On success, <address>, <size>, <stack_param_size>, and
+  // <name> are stored in |*address|, |*size|, |*stack_param_size|, and |*name|.
+  // No allocation is done, |*name| simply points inside |function_line|.
+  static bool ParseFunction(char *function_line,     // in
+                            uint64_t *address,       // out
+                            uint64_t *size,          // out
+                            long *stack_param_size,  // out
+                            char **name);            // out
+
+  // Parses a |line| declaration.  Returns true on success.
+  // Format:  <address> <size> <line number> <source file id>
+  // Notice, that this method modifies the input |function_line| which is why
+  // it can't be const.  On success, <address>, <size>, <line number>, and
+  // <source file id> are stored in |*address|, |*size|, |*line_number|, and
+  // |*source_file|.
+  static bool ParseLine(char *line_line,     // in
+                        uint64_t *address,   // out
+                        uint64_t *size,      // out
+                        long *line_number,   // out
+                        long *source_file);  // out
+
+  // Parses a |public_line| declaration.  Returns true on success.
+  // Format:  PUBLIC <address> <stack_param_size> <name>
+  // Notice, that this method modifies the input |function_line| which is why
+  // it can't be const.  On success, <address>, <stack_param_size>, <name>
+  // are stored in |*address|, |*stack_param_size|, and |*name|.
+  // No allocation is done, |*name| simply points inside |public_line|.
+  static bool ParsePublicSymbol(char *public_line,       // in
+                                uint64_t *address,       // out
+                                long *stack_param_size,  // out
+                                char **name);            // out
+
+ private:
+  // Used for success checks after strtoull and strtol.
+  static bool IsValidAfterNumber(char *after_number);
+
+  // Only allow static methods.
+  SymbolParseHelper();
+  SymbolParseHelper(const SymbolParseHelper&);
+  void operator=(const SymbolParseHelper&);
 };
 
 }  // namespace google_breakpad

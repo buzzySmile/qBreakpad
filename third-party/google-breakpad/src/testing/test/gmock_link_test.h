@@ -44,7 +44,7 @@
 //      ReturnNull
 //      ReturnRef
 //      Assign
-//      SetArgumentPointee
+//      SetArgPointee
 //      SetArrayArgument
 //      SetErrnoAndReturn
 //      Invoke(function)
@@ -114,13 +114,14 @@
 #ifndef GMOCK_TEST_GMOCK_LINK_TEST_H_
 #define GMOCK_TEST_GMOCK_LINK_TEST_H_
 
-#include <gmock/gmock.h>
+#include "gmock/gmock.h"
 
-#ifndef _WIN32_WCE
-#include <errno.h>
+#if !GTEST_OS_WINDOWS_MOBILE
+# include <errno.h>
 #endif
 
-#include <gtest/gtest.h>
+#include "gmock/internal/gmock-port.h"
+#include "gtest/gtest.h"
 #include <iostream>
 #include <vector>
 
@@ -146,6 +147,7 @@ using testing::IgnoreResult;
 using testing::Invoke;
 using testing::InvokeArgument;
 using testing::InvokeWithoutArgs;
+using testing::IsNull;
 using testing::Le;
 using testing::Lt;
 using testing::Matcher;
@@ -162,7 +164,7 @@ using testing::ResultOf;
 using testing::Return;
 using testing::ReturnNull;
 using testing::ReturnRef;
-using testing::SetArgumentPointee;
+using testing::SetArgPointee;
 using testing::SetArrayArgument;
 using testing::StartsWith;
 using testing::StrCaseEq;
@@ -175,18 +177,16 @@ using testing::WithArg;
 using testing::WithArgs;
 using testing::WithoutArgs;
 
-#ifndef _WIN32_WCE
+#if !GTEST_OS_WINDOWS_MOBILE
 using testing::SetErrnoAndReturn;
-#endif  // _WIN32_WCE
+#endif
 
 #if GTEST_HAS_EXCEPTIONS
 using testing::Throw;
-#endif  // GTEST_HAS_EXCEPTIONS
+#endif
 
-#if GMOCK_HAS_REGEX
 using testing::ContainsRegex;
 using testing::MatchesRegex;
-#endif  // GMOCK_HAS_REGEX
 
 class Interface {
  public:
@@ -195,8 +195,8 @@ class Interface {
   virtual char* StringFromString(char* str) = 0;
   virtual int IntFromString(char* str) = 0;
   virtual int& IntRefFromString(char* str) = 0;
-  virtual void VoidFromFunc(void(*)(char*)) = 0;
-  virtual void VoidFromIntRef(int& n) = 0;
+  virtual void VoidFromFunc(void(*func)(char* str)) = 0;
+  virtual void VoidFromIntRef(int& n) = 0;  // NOLINT
   virtual void VoidFromFloat(float n) = 0;
   virtual void VoidFromDouble(double n) = 0;
   virtual void VoidFromVector(const std::vector<int>& v) = 0;
@@ -204,30 +204,35 @@ class Interface {
 
 class Mock: public Interface {
  public:
+  Mock() {}
+
   MOCK_METHOD1(VoidFromString, void(char* str));
   MOCK_METHOD1(StringFromString, char*(char* str));
   MOCK_METHOD1(IntFromString, int(char* str));
   MOCK_METHOD1(IntRefFromString, int&(char* str));
   MOCK_METHOD1(VoidFromFunc, void(void(*func)(char* str)));
-  MOCK_METHOD1(VoidFromIntRef, void(int& n));
+  MOCK_METHOD1(VoidFromIntRef, void(int& n));  // NOLINT
   MOCK_METHOD1(VoidFromFloat, void(float n));
   MOCK_METHOD1(VoidFromDouble, void(double n));
   MOCK_METHOD1(VoidFromVector, void(const std::vector<int>& v));
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(Mock);
 };
 
 class InvokeHelper {
  public:
   static void StaticVoidFromVoid() {}
   void VoidFromVoid() {}
-  static void StaticVoidFromString(char*) {}
-  void VoidFromString(char*) {}
-  static int StaticIntFromString(char*) { return 1; }
-  static bool StaticBoolFromString(const char*) { return true; }
+  static void StaticVoidFromString(char* /* str */) {}
+  void VoidFromString(char* /* str */) {}
+  static int StaticIntFromString(char* /* str */) { return 1; }
+  static bool StaticBoolFromString(const char* /* str */) { return true; }
 };
 
 class FieldHelper {
  public:
-  FieldHelper(int field) : field_(field) {}
+  explicit FieldHelper(int a_field) : field_(a_field) {}
   int field() const { return field_; }
   int field_;  // NOLINT -- need external access to field_ to test
                //           the Field matcher.
@@ -276,12 +281,12 @@ TEST(LinkTest, TestAssign) {
   mock.VoidFromString(NULL);
 }
 
-// Tests the linkage of the SetArgumentPointee action.
-TEST(LinkTest, TestSetArgumentPointee) {
+// Tests the linkage of the SetArgPointee action.
+TEST(LinkTest, TestSetArgPointee) {
   Mock mock;
   char ch = 'x';
 
-  EXPECT_CALL(mock, VoidFromString(_)).WillOnce(SetArgumentPointee<0>('y'));
+  EXPECT_CALL(mock, VoidFromString(_)).WillOnce(SetArgPointee<0>('y'));
   mock.VoidFromString(&ch);
 }
 
@@ -296,7 +301,7 @@ TEST(LinkTest, TestSetArrayArgument) {
   mock.VoidFromString(&ch);
 }
 
-#ifndef _WIN32_WCE
+#if !GTEST_OS_WINDOWS_MOBILE
 
 // Tests the linkage of the SetErrnoAndReturn action.
 TEST(LinkTest, TestSetErrnoAndReturn) {
@@ -308,7 +313,7 @@ TEST(LinkTest, TestSetErrnoAndReturn) {
   errno = saved_errno;
 }
 
-#endif  // _WIN32_WCE
+#endif  // !GTEST_OS_WINDOWS_MOBILE
 
 // Tests the linkage of the Invoke(function) and Invoke(object, method) actions.
 TEST(LinkTest, TestInvoke) {
@@ -376,7 +381,7 @@ TEST(LinkTest, TestDoAll) {
   char ch = 'x';
 
   EXPECT_CALL(mock, VoidFromString(_))
-      .WillOnce(DoAll(SetArgumentPointee<0>('y'), Return()));
+      .WillOnce(DoAll(SetArgPointee<0>('y'), Return()));
   mock.VoidFromString(&ch);
 }
 
@@ -408,6 +413,16 @@ TEST(LinkTest, TestThrow) {
 }
 #endif  // GTEST_HAS_EXCEPTIONS
 
+// The ACTION*() macros trigger warning C4100 (unreferenced formal
+// parameter) in MSVC with -W4.  Unfortunately they cannot be fixed in
+// the macro definition, as the warnings are generated when the macro
+// is expanded and macro expansion cannot contain #pragma.  Therefore
+// we suppress them here.
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4100)
+#endif
+
 // Tests the linkage of actions created using ACTION macro.
 namespace {
 ACTION(Return1) { return 1; }
@@ -438,6 +453,10 @@ ACTION_P2(ReturnEqualsEitherOf, first, second) {
   return arg0 == first || arg0 == second;
 }
 }
+
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
 
 TEST(LinkTest, TestActionP2Macro) {
   Mock mock;
@@ -490,6 +509,13 @@ TEST(LinkTest, TestMatcherNotNull) {
   ON_CALL(mock, VoidFromString(NotNull())).WillByDefault(Return());
 }
 
+// Tests the linkage of the IsNull matcher.
+TEST(LinkTest, TestMatcherIsNull) {
+  Mock mock;
+
+  ON_CALL(mock, VoidFromString(IsNull())).WillByDefault(Return());
+}
+
 // Tests the linkage of the Ref matcher.
 TEST(LinkTest, TestMatcherRef) {
   Mock mock;
@@ -519,7 +545,6 @@ TEST(LinkTest, TestMatchersFloatingPoint) {
       .WillByDefault(Return());
 }
 
-#if GMOCK_HAS_REGEX
 // Tests the linkage of the ContainsRegex matcher.
 TEST(LinkTest, TestMatcherContainsRegex) {
   Mock mock;
@@ -533,7 +558,6 @@ TEST(LinkTest, TestMatcherMatchesRegex) {
 
   ON_CALL(mock, VoidFromString(MatchesRegex(".*"))).WillByDefault(Return());
 }
-#endif  // GMOCK_HAS_REGEX
 
 // Tests the linkage of the StartsWith, EndsWith, and HasSubstr matchers.
 TEST(LinkTest, TestMatchersSubstrings) {

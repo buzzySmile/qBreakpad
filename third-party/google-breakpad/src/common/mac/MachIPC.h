@@ -94,6 +94,7 @@
 //    kern_return_t result = sender.SendMessage(message, 1000); // timeout 1000ms
 //
 
+namespace google_breakpad {
 #define PRINT_MACH_RESULT(result_, message_) \
   printf(message_" %s (%d)\n", mach_error_string(result_), result_ );
 
@@ -138,12 +139,6 @@ class MachMsgPortDescriptor : public mach_msg_port_descriptor_t {
     return disposition;
   }
 
-  // We're just a simple wrapper for mach_msg_port_descriptor_t
-  // and have the same memory layout
-  operator mach_msg_port_descriptor_t&() {
-    return *this;
-  }
-
   // For convenience
   operator mach_port_t() const {
     return GetMachPort();
@@ -169,11 +164,11 @@ class MachMessage {
  public:
 
   // The receiver of the message can retrieve the raw data this way
-  u_int8_t *GetData() {
+  uint8_t *GetData() {
     return GetDataLength() > 0 ? GetDataPacket()->data : NULL;
   }
 
-  u_int32_t GetDataLength() {
+  uint32_t GetDataLength() {
     return EndianU32_LtoN(GetDataPacket()->data_length);
   }
 
@@ -215,7 +210,7 @@ class MachMessage {
   struct MessageDataPacket {
     int32_t      id;          // little-endian
     int32_t      data_length; // little-endian
-    u_int8_t     data[1];     // actual size limited by sizeof(MachMessage)
+    uint8_t      data[1];     // actual size limited by sizeof(MachMessage)
   };
 
   MessageDataPacket* GetDataPacket();
@@ -224,11 +219,11 @@ class MachMessage {
   void SetDescriptor(int n, const MachMsgPortDescriptor &desc);
 
   // Returns total message size setting msgh_size in the header to this value
-  int CalculateSize();
+  mach_msg_size_t CalculateSize();
 
   mach_msg_header_t  head;
   mach_msg_body_t    body;
-  u_int8_t           padding[1024]; // descriptors and data may be embedded here
+  uint8_t            padding[1024]; // descriptors and data may be embedded here
 };
 
 //==============================================================================
@@ -255,11 +250,11 @@ class MachSendMessage : public MachMessage {
 class ReceivePort {
  public:
   // Creates a new mach port for receiving messages and registers a name for it
-  ReceivePort(const char *receive_port_name);
+  explicit ReceivePort(const char *receive_port_name);
 
   // Given an already existing mach port, use it.  We take ownership of the
   // port and deallocate it in our destructor.
-  ReceivePort(mach_port_t receive_port);
+  explicit ReceivePort(mach_port_t receive_port);
 
   // Create a new mach port for receiving messages
   ReceivePort();
@@ -285,11 +280,11 @@ class ReceivePort {
 class MachPortSender {
  public:
   // get a port with send rights corresponding to a named registered service
-  MachPortSender(const char *receive_port_name);
+  explicit MachPortSender(const char *receive_port_name);
 
 
   // Given an already existing mach port, use it.
-  MachPortSender(mach_port_t send_port);
+  explicit MachPortSender(mach_port_t send_port);
 
   kern_return_t SendMessage(MachSendMessage &message,
                             mach_msg_timeout_t timeout);
@@ -300,5 +295,7 @@ class MachPortSender {
   mach_port_t   send_port_;
   kern_return_t init_result_;
 };
+
+}  // namespace google_breakpad
 
 #endif // MACH_IPC_H__

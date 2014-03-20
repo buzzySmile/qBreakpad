@@ -48,6 +48,7 @@ void ProcessState::Clear() {
   crashed_ = false;
   crash_reason_.clear();
   crash_address_ = 0;
+  assertion_.clear();
   requesting_thread_ = -1;
   for (vector<CallStack *>::const_iterator iterator = threads_.begin();
        iterator != threads_.end();
@@ -56,6 +57,10 @@ void ProcessState::Clear() {
   }
   threads_.clear();
   system_info_.Clear();
+  // modules_without_symbols_ and modules_with_corrupt_symbols_ DO NOT own
+  // the underlying CodeModule pointers.  Just clear the vectors.
+  modules_without_symbols_.clear();
+  modules_with_corrupt_symbols_.clear();
   delete modules_;
   modules_ = NULL;
 }

@@ -41,14 +41,10 @@ $var n = 10  $$ The maximum arity we support.
 #ifndef GMOCK_INCLUDE_GMOCK_GMOCK_GENERATED_FUNCTION_MOCKERS_H_
 #define GMOCK_INCLUDE_GMOCK_GMOCK_GENERATED_FUNCTION_MOCKERS_H_
 
-#include <gmock/gmock-spec-builders.h>
-#include <gmock/internal/gmock-internal-utils.h>
+#include "gmock/gmock-spec-builders.h"
+#include "gmock/internal/gmock-internal-utils.h"
 
 namespace testing {
-
-template <typename F>
-class MockSpec;
-
 namespace internal {
 
 template <typename F>
@@ -89,7 +85,11 @@ $if i >= 1 [[
   }
 
   R Invoke($Aas) {
-    return InvokeWith(ArgumentTuple($as));
+    // Even though gcc and MSVC don't enforce it, 'this->' is required
+    // by the C++ standard [14.6.4] here, as the base class type is
+    // dependent on the template argument (and thus shouldn't be
+    // looked into when resolving InvokeWith).
+    return this->InvokeWith(ArgumentTuple($as));
   }
 };
 
@@ -119,7 +119,7 @@ using internal::FunctionMocker;
 // The variable for mocking the given method.
 // INTERNAL IMPLEMENTATION - DON'T USE IN USER CODE!!!
 #define GMOCK_MOCKER_(arity, constness, Method) \
-    GMOCK_CONCAT_TOKEN_(gmock##constness##arity##_##Method##_, __LINE__)
+    GTEST_CONCAT_TOKEN_(gmock##constness##arity##_##Method##_, __LINE__)
 
 
 $for i [[
@@ -132,7 +132,7 @@ $var matcher_as = [[$for j, \
 // INTERNAL IMPLEMENTATION - DON'T USE IN USER CODE!!!
 #define GMOCK_METHOD$i[[]]_(tn, constness, ct, Method, F) \
   GMOCK_RESULT_(tn, F) ct Method($arg_as) constness { \
-    GMOCK_COMPILE_ASSERT_(::std::tr1::tuple_size< \
+    GTEST_COMPILE_ASSERT_(::std::tr1::tuple_size< \
         tn ::testing::internal::Function<F>::ArgumentTuple>::value == $i, \
         this_method_does_not_take_$i[[]]_argument[[$if i != 1 [[s]]]]); \
     GMOCK_MOCKER_($i, constness, Method).SetOwnerAndName(this, #Method); \
@@ -140,7 +140,8 @@ $var matcher_as = [[$for j, \
   } \
   ::testing::MockSpec<F>& \
       gmock_##Method($matcher_as) constness { \
-    return GMOCK_MOCKER_($i, constness, Method).RegisterOwner(this).With($as); \
+    GMOCK_MOCKER_($i, constness, Method).RegisterOwner(this); \
+    return GMOCK_MOCKER_($i, constness, Method).With($as); \
   } \
   mutable ::testing::FunctionMocker<F> GMOCK_MOCKER_($i, constness, Method)
 
@@ -198,6 +199,60 @@ $for i [[
 
 ]]
 
+// A MockFunction<F> class has one mock method whose type is F.  It is
+// useful when you just want your test code to emit some messages and
+// have Google Mock verify the right messages are sent (and perhaps at
+// the right times).  For example, if you are exercising code:
+//
+//   Foo(1);
+//   Foo(2);
+//   Foo(3);
+//
+// and want to verify that Foo(1) and Foo(3) both invoke
+// mock.Bar("a"), but Foo(2) doesn't invoke anything, you can write:
+//
+// TEST(FooTest, InvokesBarCorrectly) {
+//   MyMock mock;
+//   MockFunction<void(string check_point_name)> check;
+//   {
+//     InSequence s;
+//
+//     EXPECT_CALL(mock, Bar("a"));
+//     EXPECT_CALL(check, Call("1"));
+//     EXPECT_CALL(check, Call("2"));
+//     EXPECT_CALL(mock, Bar("a"));
+//   }
+//   Foo(1);
+//   check.Call("1");
+//   Foo(2);
+//   check.Call("2");
+//   Foo(3);
+// }
+//
+// The expectation spec says that the first Bar("a") must happen
+// before check point "1", the second Bar("a") must happen after check
+// point "2", and nothing should happen between the two check
+// points. The explicit check points make it easy to tell which
+// Bar("a") is called by which call to Foo().
+template <typename F>
+class MockFunction;
+
+
+$for i [[
+$range j 0..i-1
+template <typename R$for j [[, typename A$j]]>
+class MockFunction<R($for j, [[A$j]])> {
+ public:
+  MockFunction() {}
+
+  MOCK_METHOD$i[[]]_T(Call, R($for j, [[A$j]]));
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockFunction);
+};
+
+
+]]
 }  // namespace testing
 
 #endif  // GMOCK_INCLUDE_GMOCK_GMOCK_GENERATED_FUNCTION_MOCKERS_H_

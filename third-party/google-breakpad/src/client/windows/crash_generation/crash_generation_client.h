@@ -27,15 +27,15 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H__
-#define CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H__
+#ifndef CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H_
+#define CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H_
 
 #include <windows.h>
 #include <dbghelp.h>
 #include <string>
 #include <utility>
 #include "client/windows/common/ipc_protocol.h"
-#include "processor/scoped_ptr.h"
+#include "common/scoped_ptr.h"
 
 namespace google_breakpad {
 
@@ -66,12 +66,23 @@ class CrashGenerationClient {
                         MINIDUMP_TYPE dump_type,
                         const CustomClientInfo* custom_info);
 
+  CrashGenerationClient(HANDLE pipe_handle,
+                        MINIDUMP_TYPE dump_type,
+                        const CustomClientInfo* custom_info);
+
   ~CrashGenerationClient();
 
   // Registers the client process with the crash server.
   //
   // Returns true if the registration is successful; false otherwise.
   bool Register();
+
+  // Requests the crash server to upload a previous dump with the
+  // given crash id.
+  bool RequestUpload(DWORD crash_id);
+
+  bool RequestDump(EXCEPTION_POINTERS* ex_info,
+                   MDRawAssertionInfo* assert_info);
 
   // Requests the crash server to generate a dump with the given
   // exception information.
@@ -88,6 +99,14 @@ class CrashGenerationClient {
   // if the registration step was not performed or it was not successful,
   // false will be returned.
   bool RequestDump(MDRawAssertionInfo* assert_info);
+
+  // If the crash generation client is running in a sandbox that prevents it
+  // from opening the named pipe directly, the server process may open the
+  // handle and duplicate it into the client process with this helper method.
+  // Returns INVALID_HANDLE_VALUE on failure. The process must have been opened
+  // with the PROCESS_DUP_HANDLE access right.
+  static HANDLE DuplicatePipeToClientProcess(const wchar_t* pipe_name,
+                                             HANDLE hProcess);
 
  private:
   // Connects to the appropriate pipe and sets the pipe handle state.
@@ -119,6 +138,10 @@ class CrashGenerationClient {
 
   // Pipe name to use to talk to server.
   std::wstring pipe_name_;
+
+  // Pipe handle duplicated from server process. Only valid before
+  // Register is called.
+  HANDLE pipe_handle_;
 
   // Custom client information
   CustomClientInfo custom_info_;
@@ -156,4 +179,4 @@ class CrashGenerationClient {
 
 }  // namespace google_breakpad
 
-#endif  // CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H__
+#endif  // CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H_

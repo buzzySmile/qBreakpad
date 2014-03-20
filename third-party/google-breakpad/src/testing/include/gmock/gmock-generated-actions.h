@@ -38,8 +38,8 @@
 #ifndef GMOCK_INCLUDE_GMOCK_GMOCK_GENERATED_ACTIONS_H_
 #define GMOCK_INCLUDE_GMOCK_GMOCK_GENERATED_ACTIONS_H_
 
-#include <gmock/gmock-actions.h>
-#include <gmock/internal/gmock-port.h>
+#include "gmock/gmock-actions.h"
+#include "gmock/internal/gmock-port.h"
 
 namespace testing {
 namespace internal {
@@ -282,65 +282,6 @@ class InvokeHelper<R, ::std::tr1::tuple<A1, A2, A3, A4, A5, A6, A7, A8, A9,
   }
 };
 
-
-// Implements the Invoke(f) action.  The template argument
-// FunctionImpl is the implementation type of f, which can be either a
-// function pointer or a functor.  Invoke(f) can be used as an
-// Action<F> as long as f's type is compatible with F (i.e. f can be
-// assigned to a tr1::function<F>).
-template <typename FunctionImpl>
-class InvokeAction {
- public:
-  // The c'tor makes a copy of function_impl (either a function
-  // pointer or a functor).
-  explicit InvokeAction(FunctionImpl function_impl)
-      : function_impl_(function_impl) {}
-
-  template <typename Result, typename ArgumentTuple>
-  Result Perform(const ArgumentTuple& args) {
-    return InvokeHelper<Result, ArgumentTuple>::Invoke(function_impl_, args);
-  }
- private:
-  FunctionImpl function_impl_;
-};
-
-// Implements the Invoke(object_ptr, &Class::Method) action.
-template <class Class, typename MethodPtr>
-class InvokeMethodAction {
- public:
-  InvokeMethodAction(Class* obj_ptr, MethodPtr method_ptr)
-      : obj_ptr_(obj_ptr), method_ptr_(method_ptr) {}
-
-  template <typename Result, typename ArgumentTuple>
-  Result Perform(const ArgumentTuple& args) const {
-    return InvokeHelper<Result, ArgumentTuple>::InvokeMethod(
-        obj_ptr_, method_ptr_, args);
-  }
- private:
-  Class* const obj_ptr_;
-  const MethodPtr method_ptr_;
-};
-
-// A ReferenceWrapper<T> object represents a reference to type T,
-// which can be either const or not.  It can be explicitly converted
-// from, and implicitly converted to, a T&.  Unlike a reference,
-// ReferenceWrapper<T> can be copied and can survive template type
-// inference.  This is used to support by-reference arguments in the
-// InvokeArgument<N>(...) action.  The idea was from "reference
-// wrappers" in tr1, which we don't have in our source tree yet.
-template <typename T>
-class ReferenceWrapper {
- public:
-  // Constructs a ReferenceWrapper<T> object from a T&.
-  explicit ReferenceWrapper(T& l_value) : pointer_(&l_value) {}  // NOLINT
-
-  // Allows a ReferenceWrapper<T> object to be implicitly converted to
-  // a T&.
-  operator T&() const { return *pointer_; }
- private:
-  T* pointer_;
-};
-
 // CallableHelper has static methods for invoking "callables",
 // i.e. function pointers and functors.  It uses overloading to
 // provide a uniform interface for invoking different kinds of
@@ -440,7 +381,6 @@ class CallableHelper {
       A7 a7, A8 a8, A9 a9, A10 a10) {
     return function(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
   }
-
 };  // class CallableHelper
 
 // An INTERNAL macro for extracting the type of a tuple field.  It's
@@ -674,47 +614,8 @@ class WithArgsAction {
   };
 
   const InnerAction action_;
-};
 
-// Does two actions sequentially.  Used for implementing the DoAll(a1,
-// a2, ...) action.
-template <typename Action1, typename Action2>
-class DoBothAction {
- public:
-  DoBothAction(Action1 action1, Action2 action2)
-      : action1_(action1), action2_(action2) {}
-
-  // This template type conversion operator allows DoAll(a1, ..., a_n)
-  // to be used in ANY function of compatible type.
-  template <typename F>
-  operator Action<F>() const {
-    return Action<F>(new Impl<F>(action1_, action2_));
-  }
-
- private:
-  // Implements the DoAll(...) action for a particular function type F.
-  template <typename F>
-  class Impl : public ActionInterface<F> {
-   public:
-    typedef typename Function<F>::Result Result;
-    typedef typename Function<F>::ArgumentTuple ArgumentTuple;
-    typedef typename Function<F>::MakeResultVoid VoidResult;
-
-    Impl(const Action<VoidResult>& action1, const Action<F>& action2)
-        : action1_(action1), action2_(action2) {}
-
-    virtual Result Perform(const ArgumentTuple& args) {
-      action1_.Perform(args);
-      return action2_.Perform(args);
-    }
-
-   private:
-    const Action<VoidResult> action1_;
-    const Action<F> action2_;
-  };
-
-  Action1 action1_;
-  Action2 action2_;
+  GTEST_DISALLOW_ASSIGN_(WithArgsAction);
 };
 
 // A macro from the ACTION* family (defined later in this file)
@@ -851,57 +752,6 @@ class ActionHelper {
 }  // namespace internal
 
 // Various overloads for Invoke().
-
-// Creates an action that invokes 'function_impl' with the mock
-// function's arguments.
-template <typename FunctionImpl>
-PolymorphicAction<internal::InvokeAction<FunctionImpl> > Invoke(
-    FunctionImpl function_impl) {
-  return MakePolymorphicAction(
-      internal::InvokeAction<FunctionImpl>(function_impl));
-}
-
-// Creates an action that invokes the given method on the given object
-// with the mock function's arguments.
-template <class Class, typename MethodPtr>
-PolymorphicAction<internal::InvokeMethodAction<Class, MethodPtr> > Invoke(
-    Class* obj_ptr, MethodPtr method_ptr) {
-  return MakePolymorphicAction(
-      internal::InvokeMethodAction<Class, MethodPtr>(obj_ptr, method_ptr));
-}
-
-// Creates a reference wrapper for the given L-value.  If necessary,
-// you can explicitly specify the type of the reference.  For example,
-// suppose 'derived' is an object of type Derived, ByRef(derived)
-// would wrap a Derived&.  If you want to wrap a const Base& instead,
-// where Base is a base class of Derived, just write:
-//
-//   ByRef<const Base>(derived)
-template <typename T>
-inline internal::ReferenceWrapper<T> ByRef(T& l_value) {  // NOLINT
-  return internal::ReferenceWrapper<T>(l_value);
-}
-
-// WithoutArgs(inner_action) can be used in a mock function with a
-// non-empty argument list to perform inner_action, which takes no
-// argument.  In other words, it adapts an action accepting no
-// argument to one that accepts (and ignores) arguments.
-template <typename InnerAction>
-inline internal::WithArgsAction<InnerAction>
-WithoutArgs(const InnerAction& action) {
-  return internal::WithArgsAction<InnerAction>(action);
-}
-
-// WithArg<k>(an_action) creates an action that passes the k-th
-// (0-based) argument of the mock function to an_action and performs
-// it.  It adapts an action accepting one argument to one that accepts
-// multiple arguments.  For convenience, we also provide
-// WithArgs<k>(an_action) (defined below) as a synonym.
-template <int k, typename InnerAction>
-inline internal::WithArgsAction<InnerAction, k>
-WithArg(const InnerAction& action) {
-  return internal::WithArgsAction<InnerAction, k>(action);
-}
 
 // WithArgs<N1, N2, ..., Nk>(an_action) creates an action that passes
 // the selected arguments of the mock function to an_action and
@@ -1167,16 +1017,16 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
 
 // An internal macro needed for implementing ACTION*().
 #define GMOCK_ACTION_ARG_TYPES_AND_NAMES_UNUSED_\
-    const args_type& args GTEST_ATTRIBUTE_UNUSED_,\
-    arg0_type arg0 GTEST_ATTRIBUTE_UNUSED_,\
-    arg1_type arg1 GTEST_ATTRIBUTE_UNUSED_,\
-    arg2_type arg2 GTEST_ATTRIBUTE_UNUSED_,\
-    arg3_type arg3 GTEST_ATTRIBUTE_UNUSED_,\
-    arg4_type arg4 GTEST_ATTRIBUTE_UNUSED_,\
-    arg5_type arg5 GTEST_ATTRIBUTE_UNUSED_,\
-    arg6_type arg6 GTEST_ATTRIBUTE_UNUSED_,\
-    arg7_type arg7 GTEST_ATTRIBUTE_UNUSED_,\
-    arg8_type arg8 GTEST_ATTRIBUTE_UNUSED_,\
+    const args_type& args GTEST_ATTRIBUTE_UNUSED_, \
+    arg0_type arg0 GTEST_ATTRIBUTE_UNUSED_, \
+    arg1_type arg1 GTEST_ATTRIBUTE_UNUSED_, \
+    arg2_type arg2 GTEST_ATTRIBUTE_UNUSED_, \
+    arg3_type arg3 GTEST_ATTRIBUTE_UNUSED_, \
+    arg4_type arg4 GTEST_ATTRIBUTE_UNUSED_, \
+    arg5_type arg5 GTEST_ATTRIBUTE_UNUSED_, \
+    arg6_type arg6 GTEST_ATTRIBUTE_UNUSED_, \
+    arg7_type arg7 GTEST_ATTRIBUTE_UNUSED_, \
+    arg8_type arg8 GTEST_ATTRIBUTE_UNUSED_, \
     arg9_type arg9 GTEST_ATTRIBUTE_UNUSED_
 
 // Sometimes you want to give an action explicit template parameters
@@ -1527,7 +1377,7 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
 
 // The name of the class template implementing the action template.
 #define GMOCK_ACTION_CLASS_(name, value_params)\
-    GMOCK_CONCAT_TOKEN_(name##Action, GMOCK_INTERNAL_COUNT_##value_params)
+    GTEST_CONCAT_TOKEN_(name##Action, GMOCK_INTERNAL_COUNT_##value_params)
 
 #define ACTION_TEMPLATE(name, template_params, value_params)\
   template <GMOCK_INTERNAL_DECL_##template_params\
@@ -1557,12 +1407,16 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
           arg5_type arg5, arg6_type arg6, arg7_type arg7, arg8_type arg8, \
           arg9_type arg9) const;\
       GMOCK_INTERNAL_DEFN_##value_params\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(\
           new gmock_Impl<F>(GMOCK_INTERNAL_LIST_##value_params));\
     }\
     GMOCK_INTERNAL_DEFN_##value_params\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(GMOCK_ACTION_CLASS_(name, value_params));\
   };\
   template <GMOCK_INTERNAL_DECL_##template_params\
             GMOCK_INTERNAL_DECL_TYPE_##value_params>\
@@ -1578,9 +1432,9 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
   template <GMOCK_INTERNAL_DECL_##template_params\
             GMOCK_INTERNAL_DECL_TYPE_##value_params>\
   template <typename F>\
-  template <typename arg0_type, typename arg1_type, typename arg2_type,\
-      typename arg3_type, typename arg4_type, typename arg5_type,\
-      typename arg6_type, typename arg7_type, typename arg8_type,\
+  template <typename arg0_type, typename arg1_type, typename arg2_type, \
+      typename arg3_type, typename arg4_type, typename arg5_type, \
+      typename arg6_type, typename arg7_type, typename arg8_type, \
       typename arg9_type>\
   typename ::testing::internal::Function<F>::Result\
       GMOCK_ACTION_CLASS_(name, value_params)<\
@@ -1613,10 +1467,14 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
           arg1_type arg1, arg2_type arg2, arg3_type arg3, arg4_type arg4, \
           arg5_type arg5, arg6_type arg6, arg7_type arg7, arg8_type arg8, \
           arg9_type arg9) const;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>());\
     }\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##Action);\
   };\
   inline name##Action name() {\
     return name##Action();\
@@ -1656,11 +1514,15 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
           arg5_type arg5, arg6_type arg6, arg7_type arg7, arg8_type arg8, \
           arg9_type arg9) const;\
       p0##_type p0;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0));\
     }\
     p0##_type p0;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP);\
   };\
   template <typename p0##_type>\
   inline name##ActionP<p0##_type> name(p0##_type p0) {\
@@ -1705,12 +1567,16 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
           arg9_type arg9) const;\
       p0##_type p0;\
       p1##_type p1;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1));\
     }\
     p0##_type p0;\
     p1##_type p1;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP2);\
   };\
   template <typename p0##_type, typename p1##_type>\
   inline name##ActionP2<p0##_type, p1##_type> name(p0##_type p0, \
@@ -1757,6 +1623,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p0##_type p0;\
       p1##_type p1;\
       p2##_type p2;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2));\
@@ -1764,6 +1632,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p0##_type p0;\
     p1##_type p1;\
     p2##_type p2;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP3);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type>\
   inline name##ActionP3<p0##_type, p1##_type, p2##_type> name(p0##_type p0, \
@@ -1815,6 +1685,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p1##_type p1;\
       p2##_type p2;\
       p3##_type p3;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2, p3));\
@@ -1823,6 +1695,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p1##_type p1;\
     p2##_type p2;\
     p3##_type p3;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP4);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type, \
       typename p3##_type>\
@@ -1880,6 +1754,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p2##_type p2;\
       p3##_type p3;\
       p4##_type p4;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2, p3, p4));\
@@ -1889,6 +1765,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p2##_type p2;\
     p3##_type p3;\
     p4##_type p4;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP5);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type, \
       typename p3##_type, typename p4##_type>\
@@ -1948,6 +1826,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p3##_type p3;\
       p4##_type p4;\
       p5##_type p5;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2, p3, p4, p5));\
@@ -1958,6 +1838,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p3##_type p3;\
     p4##_type p4;\
     p5##_type p5;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP6);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type, \
       typename p3##_type, typename p4##_type, typename p5##_type>\
@@ -2020,6 +1902,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p4##_type p4;\
       p5##_type p5;\
       p6##_type p6;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2, p3, p4, p5, \
@@ -2032,6 +1916,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p4##_type p4;\
     p5##_type p5;\
     p6##_type p6;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP7);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type, \
       typename p3##_type, typename p4##_type, typename p5##_type, \
@@ -2100,6 +1986,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p5##_type p5;\
       p6##_type p6;\
       p7##_type p7;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2, p3, p4, p5, \
@@ -2113,6 +2001,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p5##_type p5;\
     p6##_type p6;\
     p7##_type p7;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP8);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type, \
       typename p3##_type, typename p4##_type, typename p5##_type, \
@@ -2185,6 +2075,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p6##_type p6;\
       p7##_type p7;\
       p8##_type p8;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2, p3, p4, p5, \
@@ -2199,6 +2091,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p6##_type p6;\
     p7##_type p7;\
     p8##_type p8;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP9);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type, \
       typename p3##_type, typename p4##_type, typename p5##_type, \
@@ -2274,6 +2168,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
       p7##_type p7;\
       p8##_type p8;\
       p9##_type p9;\
+     private:\
+      GTEST_DISALLOW_ASSIGN_(gmock_Impl);\
     };\
     template <typename F> operator ::testing::Action<F>() const {\
       return ::testing::Action<F>(new gmock_Impl<F>(p0, p1, p2, p3, p4, p5, \
@@ -2289,6 +2185,8 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
     p7##_type p7;\
     p8##_type p8;\
     p9##_type p9;\
+   private:\
+    GTEST_DISALLOW_ASSIGN_(name##ActionP10);\
   };\
   template <typename p0##_type, typename p1##_type, typename p2##_type, \
       typename p3##_type, typename p4##_type, typename p5##_type, \
@@ -2318,10 +2216,17 @@ DoAll(Action1 a1, Action2 a2, Action3 a3, Action4 a4, Action5 a5, Action6 a6,
           p9##_type>::gmock_Impl<F>::gmock_PerformImpl(\
           GMOCK_ACTION_ARG_TYPES_AND_NAMES_UNUSED_) const
 
-// TODO(wan@google.com): move the following to a different .h file
-// such that we don't have to run 'pump' every time the code is
-// updated.
 namespace testing {
+
+// The ACTION*() macros trigger warning C4100 (unreferenced formal
+// parameter) in MSVC with -W4.  Unfortunately they cannot be fixed in
+// the macro definition, as the warnings are generated when the macro
+// is expanded and macro expansion cannot contain #pragma.  Therefore
+// we suppress them here.
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4100)
+#endif
 
 // Various overloads for InvokeArgument<N>().
 //
@@ -2430,48 +2335,6 @@ ACTION_TEMPLATE(InvokeArgument,
       ::std::tr1::get<k>(args), p0, p1, p2, p3, p4, p5, p6, p7, p8, p9);
 }
 
-// Action SaveArg<k>(pointer) saves the k-th (0-based) argument of the
-// mock function to *pointer.
-ACTION_TEMPLATE(SaveArg,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_1_VALUE_PARAMS(pointer)) {
-  *pointer = ::std::tr1::get<k>(args);
-}
-
-// Action SetArgReferee<k>(value) assigns 'value' to the variable
-// referenced by the k-th (0-based) argument of the mock function.
-ACTION_TEMPLATE(SetArgReferee,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_1_VALUE_PARAMS(value)) {
-  typedef typename ::std::tr1::tuple_element<k, args_type>::type argk_type;
-  // Ensures that argument #k is a reference.  If you get a compiler
-  // error on the next line, you are using SetArgReferee<k>(value) in
-  // a mock function whose k-th (0-based) argument is not a reference.
-  GMOCK_COMPILE_ASSERT_(internal::is_reference<argk_type>::value,
-                        SetArgReferee_must_be_used_with_a_reference_argument);
-  ::std::tr1::get<k>(args) = value;
-}
-
-// Action SetArrayArgument<k>(first, last) copies the elements in
-// source range [first, last) to the array pointed to by the k-th
-// (0-based) argument, which can be either a pointer or an
-// iterator. The action does not take ownership of the elements in the
-// source range.
-ACTION_TEMPLATE(SetArrayArgument,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_2_VALUE_PARAMS(first, last)) {
-  // Microsoft compiler deprecates ::std::copy, so we want to suppress warning
-  // 4996 (Function call with parameters that may be unsafe) there.
-#ifdef _MSC_VER
-#pragma warning(push)          // Saves the current warning state.
-#pragma warning(disable:4996)  // Temporarily disables warning 4996.
-#endif
-  ::std::copy(first, last, ::std::tr1::get<k>(args));
-#ifdef _MSC_VER
-#pragma warning(pop)           // Restores the warning state.
-#endif
-}
-
 // Various overloads for ReturnNew<T>().
 //
 // The ReturnNew<T>(a1, a2, ..., a_k) action returns a pointer to a new
@@ -2543,19 +2406,9 @@ ACTION_TEMPLATE(ReturnNew,
   return new T(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9);
 }
 
-// Action DeleteArg<k>() deletes the k-th (0-based) argument of the mock
-// function.
-ACTION_TEMPLATE(DeleteArg,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_0_VALUE_PARAMS()) {
-  delete ::std::tr1::get<k>(args);
-}
-
-// Action Throw(exception) can be used in a mock function of any type
-// to throw the given exception.  Any copyable value can be thrown.
-#if GTEST_HAS_EXCEPTIONS
-ACTION_P(Throw, exception) { throw exception; }
-#endif  // GTEST_HAS_EXCEPTIONS
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
 
 }  // namespace testing
 

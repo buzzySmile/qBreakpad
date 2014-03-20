@@ -1,4 +1,6 @@
-// Copyright (c) 2006, Google Inc.
+// -*- mode: c++ -*-
+
+// Copyright (c) 2011, Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,23 +28,52 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// dump_symbols.cc: Implements a linux stab debugging format dumper.
-//
+
+// dump_symbols.h: Read debugging information from an ELF file, and write
+// it out as a Breakpad symbol file.
 
 #ifndef COMMON_LINUX_DUMP_SYMBOLS_H__
 #define COMMON_LINUX_DUMP_SYMBOLS_H__
 
+#include <iostream>
 #include <string>
-#include <cstdio>
+#include <vector>
+
+#include "common/symbol_data.h"
+#include "common/using_std_string.h"
 
 namespace google_breakpad {
 
-class DumpSymbols {
- public:
-  bool WriteSymbolFile(const std::string &obj_file,
-                       FILE *sym_file);
+class Module;
+
+struct DumpOptions {
+  DumpOptions(SymbolData symbol_data, bool handle_inter_cu_refs)
+      : symbol_data(symbol_data),
+        handle_inter_cu_refs(handle_inter_cu_refs) {
+  }
+
+  SymbolData symbol_data;
+  bool handle_inter_cu_refs;
 };
+
+// Find all the debugging information in OBJ_FILE, an ELF executable
+// or shared library, and write it to SYM_STREAM in the Breakpad symbol
+// file format.
+// If OBJ_FILE has been stripped but contains a .gnu_debuglink section,
+// then look for the debug file in DEBUG_DIRS.
+// SYMBOL_DATA allows limiting the type of symbol data written.
+bool WriteSymbolFile(const string &obj_file,
+                     const std::vector<string>& debug_dirs,
+                     const DumpOptions& options,
+                     std::ostream &sym_stream);
+
+// As above, but simply return the debugging information in MODULE
+// instead of writing it to a stream. The caller owns the resulting
+// Module object and must delete it when finished.
+bool ReadSymbolData(const string& obj_file,
+                    const std::vector<string>& debug_dirs,
+                    const DumpOptions& options,
+                    Module** module);
 
 }  // namespace google_breakpad
 

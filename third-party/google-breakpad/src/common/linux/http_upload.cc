@@ -27,13 +27,11 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <cassert>
-#include <dlfcn.h>
-#include <curl/curl.h>
-#include <curl/easy.h>
-#include <curl/types.h>
-
 #include "common/linux/http_upload.h"
+
+#include <assert.h>
+#include <dlfcn.h>
+#include "third_party/curl/curl.h"
 
 namespace {
 
@@ -43,7 +41,7 @@ static size_t WriteCallback(void *ptr, size_t size,
   if (!userp)
     return 0;
 
-  std::string *response = reinterpret_cast<std::string *>(userp);
+  string *response = reinterpret_cast<string *>(userp);
   size_t real_size = size * nmemb;
   response->append(reinterpret_cast<char *>(ptr), real_size);
   return real_size;
@@ -62,14 +60,36 @@ bool HTTPUpload::SendRequest(const string &url,
                              const string &file_part_name,
                              const string &proxy,
                              const string &proxy_user_pwd,
+                             const string &ca_certificate_file,
                              string *response_body,
+                             long *response_code,
                              string *error_description) {
+  if (response_code != NULL)
+    *response_code = 0;
+
   if (!CheckParameters(parameters))
     return false;
 
-  void *curl_lib = dlopen("libcurl.so", RTLD_NOW);
+  // We may have been linked statically; if curl_easy_init is in the
+  // current binary, no need to search for a dynamic version.
+  void* curl_lib = dlopen(NULL, RTLD_NOW);
+  if (!curl_lib || dlsym(curl_lib, "curl_easy_init") == NULL) {
+    dlerror();  // Clear dlerror before attempting to open libraries.
+    dlclose(curl_lib);
+    curl_lib = NULL;
+  }
   if (!curl_lib) {
+    curl_lib = dlopen("libcurl.so", RTLD_NOW);
+  }
+  if (!curl_lib) {
+    if (error_description != NULL)
+      *error_description = dlerror();
     curl_lib = dlopen("libcurl.so.4", RTLD_NOW);
+  }
+  if (!curl_lib) {
+    // Debian gives libcurl a different name when it is built against GnuTLS
+    // instead of OpenSSL.
+    curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_NOW);
   }
   if (!curl_lib) {
     curl_lib = dlopen("libcurl.so.3", RTLD_NOW);
@@ -99,6 +119,9 @@ bool HTTPUpload::SendRequest(const string &url,
     (*curl_easy_setopt)(curl, CURLOPT_PROXY, proxy.c_str());
   if (!proxy_user_pwd.empty())
     (*curl_easy_setopt)(curl, CURLOPT_PROXYUSERPWD, proxy_user_pwd.c_str());
+
+  if (!ca_certificate_file.empty())
+    (*curl_easy_setopt)(curl, CURLOPT_CAINFO, ca_certificate_file.c_str());
 
   struct curl_httppost *formpost = NULL;
   struct curl_httppost *lastptr = NULL;
@@ -134,9 +157,17 @@ bool HTTPUpload::SendRequest(const string &url,
                      reinterpret_cast<void *>(response_body));
   }
 
+  // Fail if 400+ is returned from the web server.
+  (*curl_easy_setopt)(curl, CURLOPT_FAILONERROR, 1);
+
   CURLcode (*curl_easy_perform)(CURL *);
   *(void**) (&curl_easy_perform) = dlsym(curl_lib, "curl_easy_perform");
   err_code = (*curl_easy_perform)(curl);
+  if (response_code != NULL) {
+    CURLcode (*curl_easy_getinfo)(CURL *, CURLINFO, ...);
+    *(void**) (&curl_easy_getinfo) = dlsym(curl_lib, "curl_easy_getinfo");
+    (*curl_easy_getinfo)(curl, CURLINFO_RESPONSE_CODE, response_code);
+  }
   const char* (*curl_easy_strerror)(CURLcode);
   *(void**) (&curl_easy_strerror) = dlsym(curl_lib, "curl_easy_strerror");
 #ifndef NDEBUG

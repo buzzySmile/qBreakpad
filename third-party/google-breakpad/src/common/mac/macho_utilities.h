@@ -54,12 +54,6 @@
 # define LC_UUID         0x1b    /* the uuid */
 #endif
 
-#if TARGET_CPU_X86
-# define BREAKPAD_MACHINE_THREAD_STATE i386_THREAD_STATE
-#else
-# define BREAKPAD_MACHINE_THREAD_STATE MACHINE_THREAD_STATE
-#endif
-
 // The uuid_command struct/swap routines were added during the 10.4 series.
 // Their presence isn't guaranteed.
 struct breakpad_uuid_command {

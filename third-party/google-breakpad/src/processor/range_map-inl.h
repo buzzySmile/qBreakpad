@@ -1,4 +1,4 @@
-// Copyright (c) 2006, Google Inc.
+// Copyright (c) 2010 Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
 #define PROCESSOR_RANGE_MAP_INL_H__
 
 
-#include <cassert>
+#include <assert.h>
 
 #include "processor/range_map.h"
 #include "processor/logging.h"
@@ -72,12 +72,18 @@ bool RangeMap<AddressType, EntryType>::StoreRange(const AddressType &base,
     // Some other range begins in the space used by this range.  It may be
     // contained within the space used by this range, or it may extend lower.
     // Regardless, it is an error.
-    AddressType other_base = iterator_base->second.base();
-    AddressType other_size = iterator_base->first - other_base + 1;
-    BPLOG(INFO) << "StoreRange failed, an existing range is contained by or "
-                   "extends lower than the new range: new " <<
-                   HexString(base) << "+" << HexString(size) << ", existing " <<
-                   HexString(other_base) << "+" << HexString(other_size);
+    // The processor hits this case too frequently with common symbol files.
+    // This is most appropriate for a DEBUG channel, but since none exists now
+    // simply comment out this logging.
+    //
+    // AddressType other_base = iterator_base->second.base();
+    // AddressType other_size = iterator_base->first - other_base + 1;
+    // BPLOG(INFO) << "StoreRange failed, an existing range is contained by or "
+    //                "extends lower than the new range: new " <<
+    //                 HexString(base) << "+" << HexString(size) <<
+    //                 ", existing " << HexString(other_base) << "+" <<
+    //                 HexString(other_size);
+
     return false;
   }
 
@@ -86,13 +92,17 @@ bool RangeMap<AddressType, EntryType>::StoreRange(const AddressType &base,
       // The range above this one overlaps with this one.  It may fully
       // contain this range, or it may begin within this range and extend
       // higher.  Regardless, it's an error.
-      AddressType other_base = iterator_high->second.base();
-      AddressType other_size = iterator_high->first - other_base + 1;
-      BPLOG(INFO) << "StoreRange failed, an existing range contains or "
-                     "extends higher than the new range: new " <<
-                     HexString(base) << "+" << HexString(size) <<
-                     ", existing " <<
-                     HexString(other_base) << "+" << HexString(other_size);
+      // The processor hits this case too frequently with common symbol files.
+      // This is most appropriate for a DEBUG channel, but since none exists now
+      // simply comment out this logging.
+      //
+      // AddressType other_base = iterator_high->second.base();
+      // AddressType other_size = iterator_high->first - other_base + 1;
+      // BPLOG(INFO) << "StoreRange failed, an existing range contains or "
+      //                "extends higher than the new range: new " <<
+      //                HexString(base) << "+" << HexString(size) <<
+      //                ", existing " << HexString(other_base) << "+" <<
+      //                HexString(other_size);
       return false;
     }
   }
@@ -156,7 +166,7 @@ bool RangeMap<AddressType, EntryType>::RetrieveNearestRange(
 
   *entry = iterator->second.entry();
   if (entry_base)
-    *entry_base = iterator->first;
+    *entry_base = iterator->second.base();
   if (entry_size)
     *entry_size = iterator->first - iterator->second.base() + 1;
 
@@ -184,7 +194,7 @@ bool RangeMap<AddressType, EntryType>::RetrieveRangeAtIndex(
 
   *entry = iterator->second.entry();
   if (entry_base)
-    *entry_base = iterator->first;
+    *entry_base = iterator->second.base();
   if (entry_size)
     *entry_size = iterator->first - iterator->second.base() + 1;
 

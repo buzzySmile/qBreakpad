@@ -28,9 +28,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #import "HTTPMultipartUpload.h"
+#import "GTMDefines.h"
 
 @interface HTTPMultipartUpload(PrivateMethods)
 - (NSString *)multipartBoundary;
+// Each of the following methods will append the starting multipart boundary,
+// but not the ending one.
 - (NSData *)formDataForKey:(NSString *)key value:(NSString *)value;
 - (NSData *)formDataForFileContents:(NSData *)contents name:(NSString *)name;
 - (NSData *)formDataForFile:(NSString *)file name:(NSString *)name;
@@ -66,11 +69,9 @@
   NSString *fmt = @"--%@\r\nContent-Disposition: form-data; name=\"%@\"; "
     "filename=\"minidump.dmp\"\r\nContent-Type: application/octet-stream\r\n\r\n";
   NSString *pre = [NSString stringWithFormat:fmt, boundary_, escaped];
-  NSString *post = [NSString stringWithFormat:@"\r\n--%@--\r\n", boundary_];
 
   [data appendData:[pre dataUsingEncoding:NSUTF8StringEncoding]];
   [data appendData:contents];
-  [data appendData:[post dataUsingEncoding:NSUTF8StringEncoding]];
 
   return data;
 }
@@ -148,7 +149,6 @@
       timeoutInterval:10.0 ];
 
   NSMutableData *postBody = [NSMutableData data];
-  int i, count;
 
   [req setValue:[NSString stringWithFormat:@"multipart/form-data; boundary=%@",
     boundary_] forHTTPHeaderField:@"Content-type"];
@@ -157,8 +157,8 @@
   NSArray *parameterKeys = [parameters_ allKeys];
   NSString *key;
 
-  count = [parameterKeys count];
-  for (i = 0; i < count; ++i) {
+  NSInteger count = [parameterKeys count];
+  for (NSInteger i = 0; i < count; ++i) {
     key = [parameterKeys objectAtIndex:i];
     [postBody appendData:[self formDataForKey:key
                                         value:[parameters_ objectForKey:key]]];
@@ -167,7 +167,7 @@
   // Add any files to the message
   NSArray *fileNames = [files_ allKeys];
   count = [fileNames count];
-  for (i = 0; i < count; ++i) {
+  for (NSInteger i = 0; i < count; ++i) {
     NSString *name = [fileNames objectAtIndex:i];
     id fileOrData = [files_ objectForKey:name];
     NSData *fileData;
@@ -182,6 +182,9 @@
     [postBody appendData:fileData];
   }
 
+  NSString *epilogue = [NSString stringWithFormat:@"\r\n--%@--\r\n", boundary_];
+  [postBody appendData:[epilogue dataUsingEncoding:NSUTF8StringEncoding]];
+
   [req setHTTPBody:postBody];
   [req setHTTPMethod:@"POST"];
 
@@ -193,7 +196,8 @@
                                            error:error];
 
   [response_ retain];
-  
+  [req release];
+
   return data;
 }
 

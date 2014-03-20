@@ -33,14 +33,14 @@
 //
 // This file tests the built-in actions.
 
-#include <gmock/gmock-actions.h>
+#include "gmock/gmock-actions.h"
 #include <algorithm>
 #include <iterator>
 #include <string>
-#include <gmock/gmock.h>
-#include <gmock/internal/gmock-port.h>
-#include <gtest/gtest.h>
-#include <gtest/gtest-spi.h>
+#include "gmock/gmock.h"
+#include "gmock/internal/gmock-port.h"
+#include "gtest/gtest.h"
+#include "gtest/gtest-spi.h"
 
 namespace {
 
@@ -56,6 +56,7 @@ using testing::_;
 using testing::Action;
 using testing::ActionInterface;
 using testing::Assign;
+using testing::ByRef;
 using testing::DefaultValue;
 using testing::DoDefault;
 using testing::IgnoreResult;
@@ -67,16 +68,17 @@ using testing::PolymorphicAction;
 using testing::Return;
 using testing::ReturnNull;
 using testing::ReturnRef;
+using testing::ReturnRefOfCopy;
+using testing::SetArgPointee;
 using testing::SetArgumentPointee;
-using testing::SetArrayArgument;
 
-#ifndef _WIN32_WCE
+#if !GTEST_OS_WINDOWS_MOBILE
 using testing::SetErrnoAndReturn;
-#endif  // _WIN32_WCE
+#endif
 
-#if GMOCK_HAS_PROTOBUF_
+#if GTEST_HAS_PROTOBUF_
 using testing::internal::TestMessage;
-#endif  // GMOCK_HAS_PROTOBUF_
+#endif  // GTEST_HAS_PROTOBUF_
 
 // Tests that BuiltInDefaultValue<T*>::Get() returns NULL.
 TEST(BuiltInDefaultValueTest, IsNullForPointerTypes) {
@@ -95,24 +97,26 @@ TEST(BuiltInDefaultValueTest, ExistsForPointerTypes) {
 // Tests that BuiltInDefaultValue<T>::Get() returns 0 when T is a
 // built-in numeric type.
 TEST(BuiltInDefaultValueTest, IsZeroForNumericTypes) {
-  EXPECT_EQ(0, BuiltInDefaultValue<unsigned char>::Get());
+  EXPECT_EQ(0U, BuiltInDefaultValue<unsigned char>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<signed char>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<char>::Get());
-#if !GTEST_OS_WINDOWS
-  EXPECT_EQ(0, BuiltInDefaultValue<unsigned wchar_t>::Get());
+#if GMOCK_HAS_SIGNED_WCHAR_T_
+  EXPECT_EQ(0U, BuiltInDefaultValue<unsigned wchar_t>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<signed wchar_t>::Get());
-#endif  // !GTEST_OS_WINDOWS
+#endif
+#if GMOCK_WCHAR_T_IS_NATIVE_
   EXPECT_EQ(0, BuiltInDefaultValue<wchar_t>::Get());
-  EXPECT_EQ(0, BuiltInDefaultValue<unsigned short>::Get());  // NOLINT
+#endif
+  EXPECT_EQ(0U, BuiltInDefaultValue<unsigned short>::Get());  // NOLINT
   EXPECT_EQ(0, BuiltInDefaultValue<signed short>::Get());  // NOLINT
   EXPECT_EQ(0, BuiltInDefaultValue<short>::Get());  // NOLINT
-  EXPECT_EQ(0, BuiltInDefaultValue<unsigned int>::Get());
+  EXPECT_EQ(0U, BuiltInDefaultValue<unsigned int>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<signed int>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<int>::Get());
-  EXPECT_EQ(0, BuiltInDefaultValue<unsigned long>::Get());  // NOLINT
+  EXPECT_EQ(0U, BuiltInDefaultValue<unsigned long>::Get());  // NOLINT
   EXPECT_EQ(0, BuiltInDefaultValue<signed long>::Get());  // NOLINT
   EXPECT_EQ(0, BuiltInDefaultValue<long>::Get());  // NOLINT
-  EXPECT_EQ(0, BuiltInDefaultValue<UInt64>::Get());
+  EXPECT_EQ(0U, BuiltInDefaultValue<UInt64>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<Int64>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<float>::Get());
   EXPECT_EQ(0, BuiltInDefaultValue<double>::Get());
@@ -124,11 +128,13 @@ TEST(BuiltInDefaultValueTest, ExistsForNumericTypes) {
   EXPECT_TRUE(BuiltInDefaultValue<unsigned char>::Exists());
   EXPECT_TRUE(BuiltInDefaultValue<signed char>::Exists());
   EXPECT_TRUE(BuiltInDefaultValue<char>::Exists());
-#if !GTEST_OS_WINDOWS
+#if GMOCK_HAS_SIGNED_WCHAR_T_
   EXPECT_TRUE(BuiltInDefaultValue<unsigned wchar_t>::Exists());
   EXPECT_TRUE(BuiltInDefaultValue<signed wchar_t>::Exists());
-#endif  // !GTEST_OS_WINDOWS
+#endif
+#if GMOCK_WCHAR_T_IS_NATIVE_
   EXPECT_TRUE(BuiltInDefaultValue<wchar_t>::Exists());
+#endif
   EXPECT_TRUE(BuiltInDefaultValue<unsigned short>::Exists());  // NOLINT
   EXPECT_TRUE(BuiltInDefaultValue<signed short>::Exists());  // NOLINT
   EXPECT_TRUE(BuiltInDefaultValue<short>::Exists());  // NOLINT
@@ -161,9 +167,7 @@ TEST(BuiltInDefaultValueTest, IsEmptyStringForString) {
   EXPECT_EQ("", BuiltInDefaultValue< ::string>::Get());
 #endif  // GTEST_HAS_GLOBAL_STRING
 
-#if GTEST_HAS_STD_STRING
   EXPECT_EQ("", BuiltInDefaultValue< ::std::string>::Get());
-#endif  // GTEST_HAS_STD_STRING
 }
 
 // Tests that BuiltInDefaultValue<T>::Exists() returns true when T is a
@@ -173,9 +177,7 @@ TEST(BuiltInDefaultValueTest, ExistsForString) {
   EXPECT_TRUE(BuiltInDefaultValue< ::string>::Exists());
 #endif  // GTEST_HAS_GLOBAL_STRING
 
-#if GTEST_HAS_STD_STRING
   EXPECT_TRUE(BuiltInDefaultValue< ::std::string>::Exists());
-#endif  // GTEST_HAS_STD_STRING
 }
 
 // Tests that BuiltInDefaultValue<const T>::Get() returns the same
@@ -199,25 +201,21 @@ TEST(BuiltInDefaultValueTest, UserTypeHasNoDefault) {
   EXPECT_FALSE(BuiltInDefaultValue<UserType>::Exists());
 }
 
-#if GTEST_HAS_DEATH_TEST
-
 // Tests that BuiltInDefaultValue<T&>::Get() aborts the program.
 TEST(BuiltInDefaultValueDeathTest, IsUndefinedForReferences) {
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     BuiltInDefaultValue<int&>::Get();
   }, "");
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     BuiltInDefaultValue<const char&>::Get();
   }, "");
 }
 
 TEST(BuiltInDefaultValueDeathTest, IsUndefinedForUserTypes) {
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     BuiltInDefaultValue<UserType>::Get();
   }, "");
 }
-
-#endif  // GTEST_HAS_DEATH_TEST
 
 // Tests that DefaultValue<T>::IsSet() is false initially.
 TEST(DefaultValueTest, IsInitiallyUnset) {
@@ -260,11 +258,9 @@ TEST(DefaultValueDeathTest, GetReturnsBuiltInDefaultValueWhenUnset) {
 
   EXPECT_EQ(0, DefaultValue<int>::Get());
 
-#if GTEST_HAS_DEATH_TEST
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     DefaultValue<UserType>::Get();
   }, "");
-#endif  // GTEST_HAS_DEATH_TEST
 }
 
 // Tests that DefaultValue<void>::Get() returns void.
@@ -316,14 +312,12 @@ TEST(DefaultValueOfReferenceDeathTest, GetReturnsBuiltInDefaultValueWhenUnset) {
   EXPECT_FALSE(DefaultValue<int&>::IsSet());
   EXPECT_FALSE(DefaultValue<UserType&>::IsSet());
 
-#if GTEST_HAS_DEATH_TEST
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     DefaultValue<int&>::Get();
   }, "");
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     DefaultValue<UserType>::Get();
   }, "");
-#endif  // GTEST_HAS_DEATH_TEST
 }
 
 // Tests that ActionInterface can be implemented by defining the
@@ -340,8 +334,7 @@ class MyActionImpl : public ActionInterface<MyFunction> {
 
 TEST(ActionInterfaceTest, CanBeImplementedByDefiningPerform) {
   MyActionImpl my_action_impl;
-
-  EXPECT_FALSE(my_action_impl.IsDoDefault());
+  (void)my_action_impl;
 }
 
 TEST(ActionInterfaceTest, MakeAction) {
@@ -403,12 +396,19 @@ class IsNotZero : public ActionInterface<bool(int)> {  // NOLINT
   }
 };
 
+#if !GTEST_OS_SYMBIAN
+// Compiling this test on Nokia's Symbian compiler fails with:
+//  'Result' is not a member of class 'testing::internal::Function<int>'
+//  (point of instantiation: '@unnamed@gmock_actions_test_cc@::
+//      ActionTest_CanBeConvertedToOtherActionType_Test::TestBody()')
+// with no obvious fix.
 TEST(ActionTest, CanBeConvertedToOtherActionType) {
   const Action<bool(int)> a1(new IsNotZero);  // NOLINT
   const Action<int(char)> a2 = Action<int(char)>(a1);  // NOLINT
   EXPECT_EQ(1, a2.Perform(make_tuple('a')));
   EXPECT_EQ(0, a2.Perform(make_tuple('\0')));
 }
+#endif  // !GTEST_OS_SYMBIAN
 
 // The following two classes are for testing MakePolymorphicAction().
 
@@ -512,6 +512,52 @@ TEST(ReturnTest, IsCovariant) {
   EXPECT_EQ(&derived, ret.Perform(make_tuple()));
 }
 
+// Tests that the type of the value passed into Return is converted into T
+// when the action is cast to Action<T(...)> rather than when the action is
+// performed. See comments on testing::internal::ReturnAction in
+// gmock-actions.h for more information.
+class FromType {
+ public:
+  explicit FromType(bool* is_converted) : converted_(is_converted) {}
+  bool* converted() const { return converted_; }
+
+ private:
+  bool* const converted_;
+
+  GTEST_DISALLOW_ASSIGN_(FromType);
+};
+
+class ToType {
+ public:
+  // Must allow implicit conversion due to use in ImplicitCast_<T>.
+  ToType(const FromType& x) { *x.converted() = true; }  // NOLINT
+};
+
+TEST(ReturnTest, ConvertsArgumentWhenConverted) {
+  bool converted = false;
+  FromType x(&converted);
+  Action<ToType()> action(Return(x));
+  EXPECT_TRUE(converted) << "Return must convert its argument in its own "
+                         << "conversion operator.";
+  converted = false;
+  action.Perform(tuple<>());
+  EXPECT_FALSE(converted) << "Action must NOT convert its argument "
+                          << "when performed.";
+}
+
+class DestinationType {};
+
+class SourceType {
+ public:
+  // Note: a non-const typecast operator.
+  operator DestinationType() { return DestinationType(); }
+};
+
+TEST(ReturnTest, CanConvertArgumentUsingNonConstTypeCastOperator) {
+  SourceType s;
+  Action<DestinationType()> action(Return(s));
+}
+
 // Tests that ReturnNull() returns NULL in a pointer-returning function.
 TEST(ReturnNullTest, WorksInPointerReturningFunction) {
   const Action<int*()> a1 = ReturnNull();
@@ -540,14 +586,43 @@ TEST(ReturnRefTest, IsCovariant) {
   EXPECT_EQ(&derived, &a.Perform(make_tuple()));
 }
 
+// Tests that ReturnRefOfCopy(v) works for reference types.
+TEST(ReturnRefOfCopyTest, WorksForReference) {
+  int n = 42;
+  const Action<const int&()> ret = ReturnRefOfCopy(n);
+
+  EXPECT_NE(&n, &ret.Perform(make_tuple()));
+  EXPECT_EQ(42, ret.Perform(make_tuple()));
+
+  n = 43;
+  EXPECT_NE(&n, &ret.Perform(make_tuple()));
+  EXPECT_EQ(42, ret.Perform(make_tuple()));
+}
+
+// Tests that ReturnRefOfCopy(v) is covariant.
+TEST(ReturnRefOfCopyTest, IsCovariant) {
+  Base base;
+  Derived derived;
+  Action<Base&()> a = ReturnRefOfCopy(base);
+  EXPECT_NE(&base, &a.Perform(make_tuple()));
+
+  a = ReturnRefOfCopy(derived);
+  EXPECT_NE(&derived, &a.Perform(make_tuple()));
+}
+
 // Tests that DoDefault() does the default action for the mock method.
 
 class MyClass {};
 
 class MockClass {
  public:
+  MockClass() {}
+
   MOCK_METHOD1(IntFunc, int(bool flag));  // NOLINT
   MOCK_METHOD0(Foo, MyClass());
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockClass);
 };
 
 // Tests that DoDefault() returns the built-in default value for the
@@ -559,15 +634,13 @@ TEST(DoDefaultTest, ReturnsBuiltInDefaultValueByDefault) {
   EXPECT_EQ(0, mock.IntFunc(true));
 }
 
-#if GTEST_HAS_DEATH_TEST
-
 // Tests that DoDefault() aborts the process when there is no built-in
 // default value for the return type.
 TEST(DoDefaultDeathTest, DiesForUnknowType) {
   MockClass mock;
   EXPECT_CALL(mock, Foo())
       .WillRepeatedly(DoDefault());
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     mock.Foo();
   }, "");
 }
@@ -575,7 +648,7 @@ TEST(DoDefaultDeathTest, DiesForUnknowType) {
 // Tests that using DoDefault() inside a composite action leads to a
 // run-time error.
 
-void VoidFunc(bool flag) {}
+void VoidFunc(bool /* flag */) {}
 
 TEST(DoDefaultDeathTest, DiesIfUsedInCompositeAction) {
   MockClass mock;
@@ -587,12 +660,10 @@ TEST(DoDefaultDeathTest, DiesIfUsedInCompositeAction) {
   // EXPECT_DEATH() can only capture stderr, while Google Mock's
   // errors are printed on stdout.  Therefore we have to settle for
   // not verifying the message.
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     mock.IntFunc(true);
   }, "");
 }
-
-#endif  // GTEST_HAS_DEATH_TEST
 
 // Tests that DoDefault() returns the default value set by
 // DefaultValue<T>::Set() when it's not overriden by an ON_CALL().
@@ -624,6 +695,203 @@ TEST(DoDefaultTest, CannotBeUsedInOnCall) {
   }, "DoDefault() cannot be used in ON_CALL()");
 }
 
+// Tests that SetArgPointee<N>(v) sets the variable pointed to by
+// the N-th (0-based) argument to v.
+TEST(SetArgPointeeTest, SetsTheNthPointee) {
+  typedef void MyFunction(bool, int*, char*);
+  Action<MyFunction> a = SetArgPointee<1>(2);
+
+  int n = 0;
+  char ch = '\0';
+  a.Perform(make_tuple(true, &n, &ch));
+  EXPECT_EQ(2, n);
+  EXPECT_EQ('\0', ch);
+
+  a = SetArgPointee<2>('a');
+  n = 0;
+  ch = '\0';
+  a.Perform(make_tuple(true, &n, &ch));
+  EXPECT_EQ(0, n);
+  EXPECT_EQ('a', ch);
+}
+
+#if !((GTEST_GCC_VER_ && GTEST_GCC_VER_ < 40000) || GTEST_OS_SYMBIAN)
+// Tests that SetArgPointee<N>() accepts a string literal.
+// GCC prior to v4.0 and the Symbian compiler do not support this.
+TEST(SetArgPointeeTest, AcceptsStringLiteral) {
+  typedef void MyFunction(std::string*, const char**);
+  Action<MyFunction> a = SetArgPointee<0>("hi");
+  std::string str;
+  const char* ptr = NULL;
+  a.Perform(make_tuple(&str, &ptr));
+  EXPECT_EQ("hi", str);
+  EXPECT_TRUE(ptr == NULL);
+
+  a = SetArgPointee<1>("world");
+  str = "";
+  a.Perform(make_tuple(&str, &ptr));
+  EXPECT_EQ("", str);
+  EXPECT_STREQ("world", ptr);
+}
+
+TEST(SetArgPointeeTest, AcceptsWideStringLiteral) {
+  typedef void MyFunction(const wchar_t**);
+  Action<MyFunction> a = SetArgPointee<0>(L"world");
+  const wchar_t* ptr = NULL;
+  a.Perform(make_tuple(&ptr));
+  EXPECT_STREQ(L"world", ptr);
+
+# if GTEST_HAS_STD_WSTRING
+
+  typedef void MyStringFunction(std::wstring*);
+  Action<MyStringFunction> a2 = SetArgPointee<0>(L"world");
+  std::wstring str = L"";
+  a2.Perform(make_tuple(&str));
+  EXPECT_EQ(L"world", str);
+
+# endif
+}
+#endif
+
+// Tests that SetArgPointee<N>() accepts a char pointer.
+TEST(SetArgPointeeTest, AcceptsCharPointer) {
+  typedef void MyFunction(bool, std::string*, const char**);
+  const char* const hi = "hi";
+  Action<MyFunction> a = SetArgPointee<1>(hi);
+  std::string str;
+  const char* ptr = NULL;
+  a.Perform(make_tuple(true, &str, &ptr));
+  EXPECT_EQ("hi", str);
+  EXPECT_TRUE(ptr == NULL);
+
+  char world_array[] = "world";
+  char* const world = world_array;
+  a = SetArgPointee<2>(world);
+  str = "";
+  a.Perform(make_tuple(true, &str, &ptr));
+  EXPECT_EQ("", str);
+  EXPECT_EQ(world, ptr);
+}
+
+TEST(SetArgPointeeTest, AcceptsWideCharPointer) {
+  typedef void MyFunction(bool, const wchar_t**);
+  const wchar_t* const hi = L"hi";
+  Action<MyFunction> a = SetArgPointee<1>(hi);
+  const wchar_t* ptr = NULL;
+  a.Perform(make_tuple(true, &ptr));
+  EXPECT_EQ(hi, ptr);
+
+# if GTEST_HAS_STD_WSTRING
+
+  typedef void MyStringFunction(bool, std::wstring*);
+  wchar_t world_array[] = L"world";
+  wchar_t* const world = world_array;
+  Action<MyStringFunction> a2 = SetArgPointee<1>(world);
+  std::wstring str;
+  a2.Perform(make_tuple(true, &str));
+  EXPECT_EQ(world_array, str);
+# endif
+}
+
+#if GTEST_HAS_PROTOBUF_
+
+// Tests that SetArgPointee<N>(proto_buffer) sets the v1 protobuf
+// variable pointed to by the N-th (0-based) argument to proto_buffer.
+TEST(SetArgPointeeTest, SetsTheNthPointeeOfProtoBufferType) {
+  TestMessage* const msg = new TestMessage;
+  msg->set_member("yes");
+  TestMessage orig_msg;
+  orig_msg.CopyFrom(*msg);
+
+  Action<void(bool, TestMessage*)> a = SetArgPointee<1>(*msg);
+  // SetArgPointee<N>(proto_buffer) makes a copy of proto_buffer
+  // s.t. the action works even when the original proto_buffer has
+  // died.  We ensure this behavior by deleting msg before using the
+  // action.
+  delete msg;
+
+  TestMessage dest;
+  EXPECT_FALSE(orig_msg.Equals(dest));
+  a.Perform(make_tuple(true, &dest));
+  EXPECT_TRUE(orig_msg.Equals(dest));
+}
+
+// Tests that SetArgPointee<N>(proto_buffer) sets the
+// ::ProtocolMessage variable pointed to by the N-th (0-based)
+// argument to proto_buffer.
+TEST(SetArgPointeeTest, SetsTheNthPointeeOfProtoBufferBaseType) {
+  TestMessage* const msg = new TestMessage;
+  msg->set_member("yes");
+  TestMessage orig_msg;
+  orig_msg.CopyFrom(*msg);
+
+  Action<void(bool, ::ProtocolMessage*)> a = SetArgPointee<1>(*msg);
+  // SetArgPointee<N>(proto_buffer) makes a copy of proto_buffer
+  // s.t. the action works even when the original proto_buffer has
+  // died.  We ensure this behavior by deleting msg before using the
+  // action.
+  delete msg;
+
+  TestMessage dest;
+  ::ProtocolMessage* const dest_base = &dest;
+  EXPECT_FALSE(orig_msg.Equals(dest));
+  a.Perform(make_tuple(true, dest_base));
+  EXPECT_TRUE(orig_msg.Equals(dest));
+}
+
+// Tests that SetArgPointee<N>(proto2_buffer) sets the v2
+// protobuf variable pointed to by the N-th (0-based) argument to
+// proto2_buffer.
+TEST(SetArgPointeeTest, SetsTheNthPointeeOfProto2BufferType) {
+  using testing::internal::FooMessage;
+  FooMessage* const msg = new FooMessage;
+  msg->set_int_field(2);
+  msg->set_string_field("hi");
+  FooMessage orig_msg;
+  orig_msg.CopyFrom(*msg);
+
+  Action<void(bool, FooMessage*)> a = SetArgPointee<1>(*msg);
+  // SetArgPointee<N>(proto2_buffer) makes a copy of
+  // proto2_buffer s.t. the action works even when the original
+  // proto2_buffer has died.  We ensure this behavior by deleting msg
+  // before using the action.
+  delete msg;
+
+  FooMessage dest;
+  dest.set_int_field(0);
+  a.Perform(make_tuple(true, &dest));
+  EXPECT_EQ(2, dest.int_field());
+  EXPECT_EQ("hi", dest.string_field());
+}
+
+// Tests that SetArgPointee<N>(proto2_buffer) sets the
+// proto2::Message variable pointed to by the N-th (0-based) argument
+// to proto2_buffer.
+TEST(SetArgPointeeTest, SetsTheNthPointeeOfProto2BufferBaseType) {
+  using testing::internal::FooMessage;
+  FooMessage* const msg = new FooMessage;
+  msg->set_int_field(2);
+  msg->set_string_field("hi");
+  FooMessage orig_msg;
+  orig_msg.CopyFrom(*msg);
+
+  Action<void(bool, ::proto2::Message*)> a = SetArgPointee<1>(*msg);
+  // SetArgPointee<N>(proto2_buffer) makes a copy of
+  // proto2_buffer s.t. the action works even when the original
+  // proto2_buffer has died.  We ensure this behavior by deleting msg
+  // before using the action.
+  delete msg;
+
+  FooMessage dest;
+  dest.set_int_field(0);
+  ::proto2::Message* const dest_base = &dest;
+  a.Perform(make_tuple(true, dest_base));
+  EXPECT_EQ(2, dest.int_field());
+  EXPECT_EQ("hi", dest.string_field());
+}
+
+#endif  // GTEST_HAS_PROTOBUF_
+
 // Tests that SetArgumentPointee<N>(v) sets the variable pointed to by
 // the N-th (0-based) argument to v.
 TEST(SetArgumentPointeeTest, SetsTheNthPointee) {
@@ -644,7 +912,7 @@ TEST(SetArgumentPointeeTest, SetsTheNthPointee) {
   EXPECT_EQ('a', ch);
 }
 
-#if GMOCK_HAS_PROTOBUF_
+#if GTEST_HAS_PROTOBUF_
 
 // Tests that SetArgumentPointee<N>(proto_buffer) sets the v1 protobuf
 // variable pointed to by the N-th (0-based) argument to proto_buffer.
@@ -741,86 +1009,7 @@ TEST(SetArgumentPointeeTest, SetsTheNthPointeeOfProto2BufferBaseType) {
   EXPECT_EQ("hi", dest.string_field());
 }
 
-#endif  // GMOCK_HAS_PROTOBUF_
-
-// Tests that SetArrayArgument<N>(first, last) sets the elements of the array
-// pointed to by the N-th (0-based) argument to values in range [first, last).
-TEST(SetArrayArgumentTest, SetsTheNthArray) {
-  typedef void MyFunction(bool, int*, char*);
-  int numbers[] = { 1, 2, 3 };
-  Action<MyFunction> a = SetArrayArgument<1>(numbers, numbers + 3);
-
-  int n[4] = {};
-  int* pn = n;
-  char ch[4] = {};
-  char* pch = ch;
-  a.Perform(make_tuple(true, pn, pch));
-  EXPECT_EQ(1, n[0]);
-  EXPECT_EQ(2, n[1]);
-  EXPECT_EQ(3, n[2]);
-  EXPECT_EQ(0, n[3]);
-  EXPECT_EQ('\0', ch[0]);
-  EXPECT_EQ('\0', ch[1]);
-  EXPECT_EQ('\0', ch[2]);
-  EXPECT_EQ('\0', ch[3]);
-
-  // Tests first and last are iterators.
-  std::string letters = "abc";
-  a = SetArrayArgument<2>(letters.begin(), letters.end());
-  std::fill_n(n, 4, 0);
-  std::fill_n(ch, 4, '\0');
-  a.Perform(make_tuple(true, pn, pch));
-  EXPECT_EQ(0, n[0]);
-  EXPECT_EQ(0, n[1]);
-  EXPECT_EQ(0, n[2]);
-  EXPECT_EQ(0, n[3]);
-  EXPECT_EQ('a', ch[0]);
-  EXPECT_EQ('b', ch[1]);
-  EXPECT_EQ('c', ch[2]);
-  EXPECT_EQ('\0', ch[3]);
-}
-
-// Tests SetArrayArgument<N>(first, last) where first == last.
-TEST(SetArrayArgumentTest, SetsTheNthArrayWithEmptyRange) {
-  typedef void MyFunction(bool, int*);
-  int numbers[] = { 1, 2, 3 };
-  Action<MyFunction> a = SetArrayArgument<1>(numbers, numbers);
-
-  int n[4] = {};
-  int* pn = n;
-  a.Perform(make_tuple(true, pn));
-  EXPECT_EQ(0, n[0]);
-  EXPECT_EQ(0, n[1]);
-  EXPECT_EQ(0, n[2]);
-  EXPECT_EQ(0, n[3]);
-}
-
-// Tests SetArrayArgument<N>(first, last) where *first is convertible
-// (but not equal) to the argument type.
-TEST(SetArrayArgumentTest, SetsTheNthArrayWithConvertibleType) {
-  typedef void MyFunction(bool, char*);
-  int codes[] = { 97, 98, 99 };
-  Action<MyFunction> a = SetArrayArgument<1>(codes, codes + 3);
-
-  char ch[4] = {};
-  char* pch = ch;
-  a.Perform(make_tuple(true, pch));
-  EXPECT_EQ('a', ch[0]);
-  EXPECT_EQ('b', ch[1]);
-  EXPECT_EQ('c', ch[2]);
-  EXPECT_EQ('\0', ch[3]);
-}
-
-// Test SetArrayArgument<N>(first, last) with iterator as argument.
-TEST(SetArrayArgumentTest, SetsTheNthArrayWithIteratorArgument) {
-  typedef void MyFunction(bool, std::back_insert_iterator<std::string>);
-  std::string letters = "abc";
-  Action<MyFunction> a = SetArrayArgument<1>(letters.begin(), letters.end());
-
-  std::string s;
-  a.Perform(make_tuple(true, back_inserter(s)));
-  EXPECT_EQ(letters, s);
-}
+#endif  // GTEST_HAS_PROTOBUF_
 
 // Sample functions and functors for testing Invoke() and etc.
 int Nullary() { return 1; }
@@ -842,7 +1031,7 @@ bool Unary(int x) { return x < 0; }
 
 const char* Plus1(const char* s) { return s + 1; }
 
-void VoidUnary(int n) { g_done = true; }
+void VoidUnary(int /* n */) { g_done = true; }
 
 bool ByConstRef(const std::string& s) { return s == "Hi"; }
 
@@ -911,7 +1100,7 @@ TEST(InvokeWithoutArgsTest, Function) {
   EXPECT_EQ(1, a.Perform(make_tuple(2)));
 
   // As an action that takes two arguments.
-  Action<short(int, double)> a2 = InvokeWithoutArgs(Nullary);  // NOLINT
+  Action<int(int, double)> a2 = InvokeWithoutArgs(Nullary);  // NOLINT
   EXPECT_EQ(1, a2.Perform(make_tuple(2, 3.5)));
 
   // As an action that returns void.
@@ -928,7 +1117,7 @@ TEST(InvokeWithoutArgsTest, Functor) {
   EXPECT_EQ(2, a.Perform(make_tuple()));
 
   // As an action that takes three arguments.
-  Action<short(int, double, char)> a2 =  // NOLINT
+  Action<int(int, double, char)> a2 =  // NOLINT
       InvokeWithoutArgs(NullaryFunctor());
   EXPECT_EQ(2, a2.Perform(make_tuple(3, 3.5, 'a')));
 
@@ -969,7 +1158,7 @@ TEST(IgnoreResultTest, MonomorphicAction) {
 
 // Tests using IgnoreResult() on an action that returns a class type.
 
-MyClass ReturnMyClass(double x) {
+MyClass ReturnMyClass(double /* x */) {
   g_done = true;
   return MyClass();
 }
@@ -1002,7 +1191,7 @@ TEST(AssignTest, CompatibleTypes) {
   EXPECT_DOUBLE_EQ(5, x);
 }
 
-#ifndef _WIN32_WCE
+#if !GTEST_OS_WINDOWS_MOBILE
 
 class SetErrnoAndReturnTest : public testing::Test {
  protected:
@@ -1029,6 +1218,91 @@ TEST_F(SetErrnoAndReturnTest, CompatibleTypes) {
   EXPECT_EQ(EINVAL, errno);
 }
 
-#endif  // _WIN32_WCE
+#endif  // !GTEST_OS_WINDOWS_MOBILE
+
+// Tests ByRef().
+
+// Tests that ReferenceWrapper<T> is copyable.
+TEST(ByRefTest, IsCopyable) {
+  const std::string s1 = "Hi";
+  const std::string s2 = "Hello";
+
+  ::testing::internal::ReferenceWrapper<const std::string> ref_wrapper =
+      ByRef(s1);
+  const std::string& r1 = ref_wrapper;
+  EXPECT_EQ(&s1, &r1);
+
+  // Assigns a new value to ref_wrapper.
+  ref_wrapper = ByRef(s2);
+  const std::string& r2 = ref_wrapper;
+  EXPECT_EQ(&s2, &r2);
+
+  ::testing::internal::ReferenceWrapper<const std::string> ref_wrapper1 =
+      ByRef(s1);
+  // Copies ref_wrapper1 to ref_wrapper.
+  ref_wrapper = ref_wrapper1;
+  const std::string& r3 = ref_wrapper;
+  EXPECT_EQ(&s1, &r3);
+}
+
+// Tests using ByRef() on a const value.
+TEST(ByRefTest, ConstValue) {
+  const int n = 0;
+  // int& ref = ByRef(n);  // This shouldn't compile - we have a
+                           // negative compilation test to catch it.
+  const int& const_ref = ByRef(n);
+  EXPECT_EQ(&n, &const_ref);
+}
+
+// Tests using ByRef() on a non-const value.
+TEST(ByRefTest, NonConstValue) {
+  int n = 0;
+
+  // ByRef(n) can be used as either an int&,
+  int& ref = ByRef(n);
+  EXPECT_EQ(&n, &ref);
+
+  // or a const int&.
+  const int& const_ref = ByRef(n);
+  EXPECT_EQ(&n, &const_ref);
+}
+
+// Tests explicitly specifying the type when using ByRef().
+TEST(ByRefTest, ExplicitType) {
+  int n = 0;
+  const int& r1 = ByRef<const int>(n);
+  EXPECT_EQ(&n, &r1);
+
+  // ByRef<char>(n);  // This shouldn't compile - we have a negative
+                      // compilation test to catch it.
+
+  Derived d;
+  Derived& r2 = ByRef<Derived>(d);
+  EXPECT_EQ(&d, &r2);
+
+  const Derived& r3 = ByRef<const Derived>(d);
+  EXPECT_EQ(&d, &r3);
+
+  Base& r4 = ByRef<Base>(d);
+  EXPECT_EQ(&d, &r4);
+
+  const Base& r5 = ByRef<const Base>(d);
+  EXPECT_EQ(&d, &r5);
+
+  // The following shouldn't compile - we have a negative compilation
+  // test for it.
+  //
+  // Base b;
+  // ByRef<Derived>(b);
+}
+
+// Tests that Google Mock prints expression ByRef(x) as a reference to x.
+TEST(ByRefTest, PrintsCorrectly) {
+  int n = 42;
+  ::std::stringstream expected, actual;
+  testing::internal::UniversalPrinter<const int&>::Print(n, &expected);
+  testing::internal::UniversalPrint(ByRef(n), &actual);
+  EXPECT_EQ(expected.str(), actual.str());
+}
 
 }  // Unnamed namespace

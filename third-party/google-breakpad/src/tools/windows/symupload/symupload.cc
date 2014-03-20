@@ -153,7 +153,7 @@ static bool DumpSymbolsToTempFile(const wchar_t *file,
   return writer.GetModuleInfo(pdb_info);
 }
 
-void printUsageAndExit() {
+__declspec(noreturn) void printUsageAndExit() {
   wprintf(L"Usage: symupload [--timeout NN] <file.exe|file.dll> <symbol upload URL>\n\n");
   wprintf(L"Timeout is in milliseconds, or can be 0 to be unlimited\n\n");
   wprintf(L"Example:\n\n\tsymupload.exe --timeout 0 chrome.dll http://no.free.symbol.server.for.you\n");

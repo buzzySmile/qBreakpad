@@ -33,10 +33,10 @@
 //
 // This file tests code in gmock.cc.
 
-#include <gmock/gmock.h>
+#include "gmock/gmock.h"
 
 #include <string>
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 using testing::GMOCK_FLAG(verbose);
 using testing::InitGoogleMock;
@@ -251,5 +251,5 @@ TEST(WideInitGoogleMockTest, CallsInitGoogleTest) {
 TEST(FlagTest, IsAccessibleInCode) {
   bool dummy = testing::GMOCK_FLAG(catch_leaked_mocks) &&
       testing::GMOCK_FLAG(verbose) == "";
-  dummy = dummy;  // Avoids the "unused local variable" warning.
+  (void)dummy;  // Avoids the "unused local variable" warning.
 }

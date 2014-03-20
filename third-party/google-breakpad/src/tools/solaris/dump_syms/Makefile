@@ -54,8 +54,8 @@ guid_creator.o:../../../common/solaris/guid_creator.cc
 file_id.o:../../../common/solaris/file_id.cc
 	$(CXX) $(CXXFLAGS) -c $^
 
-md5.o:../../../common/md5.c
-	$(CC) $(CXXFLAGS) -c $^
+md5.o:../../../common/md5.cc
+	$(CXX) $(CXXFLAGS) -c $^
 
 test:all
 	./run_regtest.sh

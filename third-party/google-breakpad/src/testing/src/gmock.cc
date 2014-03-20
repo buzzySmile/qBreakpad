@@ -29,8 +29,8 @@
 //
 // Author: wan@google.com (Zhanyong Wan)
 
-#include <gmock/gmock.h>
-#include <gmock/internal/gmock-port.h>
+#include "gmock/gmock.h"
+#include "gmock/internal/gmock-port.h"
 
 namespace testing {
 
@@ -63,7 +63,7 @@ static const char* ParseGoogleMockFlagValue(const char* str,
 
   // The flag must start with "--gmock_".
   const String flag_str = String::Format("--gmock_%s", flag);
-  const size_t flag_len = flag_str.GetLength();
+  const size_t flag_len = flag_str.length();
   if (strncmp(str, flag_str.c_str(), flag_len) != 0) return NULL;
 
   // Skips the flag name.
@@ -169,13 +169,13 @@ void InitGoogleMockImpl(int* argc, CharType** argv) {
 // Since Google Test is needed for Google Mock to work, this function
 // also initializes Google Test and parses its flags, if that hasn't
 // been done.
-void InitGoogleMock(int* argc, char** argv) {
+GTEST_API_ void InitGoogleMock(int* argc, char** argv) {
   internal::InitGoogleMockImpl(argc, argv);
 }
 
 // This overloaded version can be used in Windows programs compiled in
 // UNICODE mode.
-void InitGoogleMock(int* argc, wchar_t** argv) {
+GTEST_API_ void InitGoogleMock(int* argc, wchar_t** argv) {
   internal::InitGoogleMockImpl(argc, argv);
 }
 

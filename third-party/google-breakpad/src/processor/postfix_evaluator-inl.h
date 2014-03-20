@@ -1,4 +1,6 @@
-// Copyright (c) 2006, Google Inc.
+// -*- mode: c++ -*-
+
+// Copyright (c) 2010 Google Inc.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,10 +39,12 @@
 #ifndef PROCESSOR_POSTFIX_EVALUATOR_INL_H__
 #define PROCESSOR_POSTFIX_EVALUATOR_INL_H__
 
+#include "processor/postfix_evaluator.h"
+
+#include <stdio.h>
 
 #include <sstream>
 
-#include "processor/postfix_evaluator.h"
 #include "google_breakpad/processor/memory_region.h"
 #include "processor/logging.h"
 
@@ -63,143 +67,206 @@ class AutoStackClearer {
 
 
 template<typename ValueType>
+bool PostfixEvaluator<ValueType>::EvaluateToken(
+    const string &token,
+    const string &expression,
+    DictionaryValidityType *assigned) {
+  // There are enough binary operations that do exactly the same thing
+  // (other than the specific operation, of course) that it makes sense
+  // to share as much code as possible.
+  enum BinaryOperation {
+    BINARY_OP_NONE = 0,
+    BINARY_OP_ADD,
+    BINARY_OP_SUBTRACT,
+    BINARY_OP_MULTIPLY,
+    BINARY_OP_DIVIDE_QUOTIENT,
+    BINARY_OP_DIVIDE_MODULUS,
+    BINARY_OP_ALIGN
+  };
+
+  BinaryOperation operation = BINARY_OP_NONE;
+  if (token == "+")
+    operation = BINARY_OP_ADD;
+  else if (token == "-")
+    operation = BINARY_OP_SUBTRACT;
+  else if (token == "*")
+    operation = BINARY_OP_MULTIPLY;
+  else if (token == "/")
+    operation = BINARY_OP_DIVIDE_QUOTIENT;
+  else if (token == "%")
+    operation = BINARY_OP_DIVIDE_MODULUS;
+  else if (token == "@")
+    operation = BINARY_OP_ALIGN;
+
+  if (operation != BINARY_OP_NONE) {
+    // Get the operands.
+    ValueType operand1 = ValueType();
+    ValueType operand2 = ValueType();
+    if (!PopValues(&operand1, &operand2)) {
+      BPLOG(ERROR) << "Could not PopValues to get two values for binary "
+                      "operation " << token << ": " << expression;
+      return false;
+    }
+
+    // Perform the operation.
+    ValueType result;
+    switch (operation) {
+      case BINARY_OP_ADD:
+        result = operand1 + operand2;
+        break;
+      case BINARY_OP_SUBTRACT:
+        result = operand1 - operand2;
+        break;
+      case BINARY_OP_MULTIPLY:
+        result = operand1 * operand2;
+        break;
+      case BINARY_OP_DIVIDE_QUOTIENT:
+        result = operand1 / operand2;
+        break;
+      case BINARY_OP_DIVIDE_MODULUS:
+        result = operand1 % operand2;
+        break;
+      case BINARY_OP_ALIGN:
+	result =
+	  operand1 & (static_cast<ValueType>(-1) ^ (operand2 - 1));
+        break;
+      case BINARY_OP_NONE:
+        // This will not happen, but compilers will want a default or
+        // BINARY_OP_NONE case.
+        BPLOG(ERROR) << "Not reached!";
+        return false;
+        break;
+    }
+
+    // Save the result.
+    PushValue(result);
+  } else if (token == "^") {
+    // ^ for unary dereference.  Can't dereference without memory.
+    if (!memory_) {
+      BPLOG(ERROR) << "Attempt to dereference without memory: " <<
+                      expression;
+      return false;
+    }
+
+    ValueType address;
+    if (!PopValue(&address)) {
+      BPLOG(ERROR) << "Could not PopValue to get value to derefence: " <<
+                      expression;
+      return false;
+    }
+
+    ValueType value;
+    if (!memory_->GetMemoryAtAddress(address, &value)) {
+      BPLOG(ERROR) << "Could not dereference memory at address " <<
+                      HexString(address) << ": " << expression;
+      return false;
+    }
+
+    PushValue(value);
+  } else if (token == "=") {
+    // = for assignment.
+    ValueType value;
+    if (!PopValue(&value)) {
+      BPLOG(INFO) << "Could not PopValue to get value to assign: " <<
+                     expression;
+      return false;
+    }
+
+    // Assignment is only meaningful when assigning into an identifier.
+    // The identifier must name a variable, not a constant.  Variables
+    // begin with '$'.
+    string identifier;
+    if (PopValueOrIdentifier(NULL, &identifier) != POP_RESULT_IDENTIFIER) {
+      BPLOG(ERROR) << "PopValueOrIdentifier returned a value, but an "
+                      "identifier is needed to assign " <<
+                      HexString(value) << ": " << expression;
+      return false;
+    }
+    if (identifier.empty() || identifier[0] != '$') {
+      BPLOG(ERROR) << "Can't assign " << HexString(value) << " to " <<
+                      identifier << ": " << expression;
+      return false;
+    }
+
+    (*dictionary_)[identifier] = value;
+    if (assigned)
+      (*assigned)[identifier] = true;
+  } else {
+    // The token is not an operator, it's a literal value or an identifier.
+    // Push it onto the stack as-is.  Use push_back instead of PushValue
+    // because PushValue pushes ValueType as a string, but token is already
+    // a string.
+    stack_.push_back(token);
+  }
+  return true;
+}
+
+template<typename ValueType>
+bool PostfixEvaluator<ValueType>::EvaluateInternal(
+    const string &expression,
+    DictionaryValidityType *assigned) {
+  // Tokenize, splitting on whitespace.
+  istringstream stream(expression);
+  string token;
+  while (stream >> token) {
+    // Normally, tokens are whitespace-separated, but occasionally, the
+    // assignment operator is smashed up against the next token, i.e.
+    // $T0 $ebp 128 + =$eip $T0 4 + ^ =$ebp $T0 ^ =
+    // This has been observed in program strings produced by MSVS 2010 in LTO
+    // mode.
+    if (token.size() > 1 && token[0] == '=') {
+      if (!EvaluateToken("=", expression, assigned)) {
+        return false;
+      }
+
+      if (!EvaluateToken(token.substr(1), expression, assigned)) {
+        return false;
+      }
+    } else if (!EvaluateToken(token, expression, assigned)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+template<typename ValueType>
 bool PostfixEvaluator<ValueType>::Evaluate(const string &expression,
                                            DictionaryValidityType *assigned) {
   // Ensure that the stack is cleared before returning.
   AutoStackClearer clearer(&stack_);
 
-  // Tokenize, splitting on whitespace.
-  istringstream stream(expression);
-  string token;
-  while (stream >> token) {
-    // There are enough binary operations that do exactly the same thing
-    // (other than the specific operation, of course) that it makes sense
-    // to share as much code as possible.
-    enum BinaryOperation {
-      BINARY_OP_NONE = 0,
-      BINARY_OP_ADD,
-      BINARY_OP_SUBTRACT,
-      BINARY_OP_MULTIPLY,
-      BINARY_OP_DIVIDE_QUOTIENT,
-      BINARY_OP_DIVIDE_MODULUS
-    };
-
-    BinaryOperation operation = BINARY_OP_NONE;
-    if (token == "+")
-      operation = BINARY_OP_ADD;
-    else if (token == "-")
-      operation = BINARY_OP_SUBTRACT;
-    else if (token == "*")
-      operation = BINARY_OP_MULTIPLY;
-    else if (token == "/")
-      operation = BINARY_OP_DIVIDE_QUOTIENT;
-    else if (token == "%")
-      operation = BINARY_OP_DIVIDE_MODULUS;
-
-    if (operation != BINARY_OP_NONE) {
-      // Get the operands.
-      ValueType operand1, operand2;
-      if (!PopValues(&operand1, &operand2)) {
-        BPLOG(ERROR) << "Could not PopValues to get two values for binary "
-                        "operation " << token << ": " << expression;
-        return false;
-      }
-
-      // Perform the operation.
-      ValueType result;
-      switch (operation) {
-        case BINARY_OP_ADD:
-          result = operand1 + operand2;
-          break;
-        case BINARY_OP_SUBTRACT:
-          result = operand1 - operand2;
-          break;
-        case BINARY_OP_MULTIPLY:
-          result = operand1 * operand2;
-          break;
-        case BINARY_OP_DIVIDE_QUOTIENT:
-          result = operand1 / operand2;
-          break;
-        case BINARY_OP_DIVIDE_MODULUS:
-          result = operand1 % operand2;
-          break;
-        case BINARY_OP_NONE:
-          // This will not happen, but compilers will want a default or
-          // BINARY_OP_NONE case.
-          BPLOG(ERROR) << "Not reached!";
-          return false;
-          break;
-      }
-
-      // Save the result.
-      PushValue(result);
-    } else if (token == "^") {
-      // ^ for unary dereference.  Can't dereference without memory.
-      if (!memory_) {
-        BPLOG(ERROR) << "Attempt to dereference without memory: " <<
-                        expression;
-        return false;
-      }
-
-      ValueType address;
-      if (!PopValue(&address)) {
-        BPLOG(ERROR) << "Could not PopValue to get value to derefence: " <<
-                        expression;
-        return false;
-      }
-
-      ValueType value;
-      if (!memory_->GetMemoryAtAddress(address, &value)) {
-        BPLOG(ERROR) << "Could not dereference memory at address " <<
-                        HexString(address) << ": " << expression;
-        return false;
-      }
-
-      PushValue(value);
-    } else if (token == "=") {
-      // = for assignment.
-      ValueType value;
-      if (!PopValue(&value)) {
-        BPLOG(ERROR) << "Could not PopValue to get value to assign: " <<
-                        expression;
-        return false;
-      }
-
-      // Assignment is only meaningful when assigning into an identifier.
-      // The identifier must name a variable, not a constant.  Variables
-      // begin with '$'.
-      string identifier;
-      if (PopValueOrIdentifier(NULL, &identifier) != POP_RESULT_IDENTIFIER) {
-        BPLOG(ERROR) << "PopValueOrIdentifier returned a value, but an "
-                        "identifier is needed to assign " <<
-                        HexString(value) << ": " << expression;
-        return false;
-      }
-      if (identifier.empty() || identifier[0] != '$') {
-        BPLOG(ERROR) << "Can't assign " << HexString(value) << " to " <<
-                        identifier << ": " << expression;
-        return false;
-      }
-
-      (*dictionary_)[identifier] = value;
-      if (assigned)
-        (*assigned)[identifier] = true;
-    } else {
-      // The token is not an operator, it's a literal value or an identifier.
-      // Push it onto the stack as-is.  Use push_back instead of PushValue
-      // because PushValue pushes ValueType as a string, but token is already
-      // a string.
-      stack_.push_back(token);
-    }
-  }
+  if (!EvaluateInternal(expression, assigned))
+    return false;
 
   // If there's anything left on the stack, it indicates incomplete execution.
   // This is a failure case.  If the stack is empty, evalution was complete
   // and successful.
-  BPLOG_IF(ERROR, !stack_.empty()) << "Incomplete execution: " << expression;
-  return stack_.empty();
+  if (stack_.empty())
+    return true;
+
+  BPLOG(ERROR) << "Incomplete execution: " << expression;
+  return false;
 }
 
+template<typename ValueType>
+bool PostfixEvaluator<ValueType>::EvaluateForValue(const string &expression,
+                                                   ValueType *result) {
+  // Ensure that the stack is cleared before returning.
+  AutoStackClearer clearer(&stack_);
+
+  if (!EvaluateInternal(expression, NULL))
+    return false;
+
+  // A successful execution should leave exactly one value on the stack.
+  if (stack_.size() != 1) {
+    BPLOG(ERROR) << "Expression yielded bad number of results: "
+                 << "'" << expression << "'";
+    return false;
+  }
+
+  return PopValue(result);
+}
 
 template<typename ValueType>
 typename PostfixEvaluator<ValueType>::PopResult
@@ -212,16 +279,30 @@ PostfixEvaluator<ValueType>::PopValueOrIdentifier(
   string token = stack_.back();
   stack_.pop_back();
 
-  // First, try to treat the value as a literal.  In order for this to
-  // succed, the entire string must be parseable as ValueType.  If this
-  // isn't possible, it can't be a literal, so treat it as an identifier
-  // instead.
+  // First, try to treat the value as a literal. Literals may have leading
+  // '-' sign, and the entire remaining string must be parseable as
+  // ValueType. If this isn't possible, it can't be a literal, so treat it
+  // as an identifier instead.
+  //
+  // Some versions of the libstdc++, the GNU standard C++ library, have
+  // stream extractors for unsigned integer values that permit a leading
+  // '-' sign (6.0.13); others do not (6.0.9). Since we require it, we
+  // handle it explicitly here.
   istringstream token_stream(token);
-  ValueType literal;
+  ValueType literal = ValueType();
+  bool negative;
+  if (token_stream.peek() == '-') {
+    negative = true;
+    token_stream.get();
+  } else {
+    negative = false;
+  }
   if (token_stream >> literal && token_stream.peek() == EOF) {
     if (value) {
       *value = literal;
     }
+    if (negative)
+      *value = -*value;
     return POP_RESULT_VALUE;
   } else {
     if (identifier) {
@@ -234,7 +315,7 @@ PostfixEvaluator<ValueType>::PopValueOrIdentifier(
 
 template<typename ValueType>
 bool PostfixEvaluator<ValueType>::PopValue(ValueType *value) {
-  ValueType literal;
+  ValueType literal = ValueType();
   string token;
   PopResult result;
   if ((result = PopValueOrIdentifier(&literal, &token)) == POP_RESULT_FAIL) {
@@ -250,7 +331,7 @@ bool PostfixEvaluator<ValueType>::PopValue(ValueType *value) {
     if (iterator == dictionary_->end()) {
       // The identifier wasn't found in the dictionary.  Don't imply any
       // default value, just fail.
-      BPLOG(ERROR) << "Identifier " << token << " not in dictionary";
+      BPLOG(INFO) << "Identifier " << token << " not in dictionary";
       return false;
     }
 

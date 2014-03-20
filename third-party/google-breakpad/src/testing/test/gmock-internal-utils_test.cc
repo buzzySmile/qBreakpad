@@ -33,26 +33,33 @@
 //
 // This file tests the internal utilities.
 
-#include <gmock/internal/gmock-internal-utils.h>
+#include "gmock/internal/gmock-internal-utils.h"
 #include <stdlib.h>
 #include <map>
 #include <string>
 #include <sstream>
 #include <vector>
-#include <gmock/gmock.h>
-#include <gmock/internal/gmock-port.h>
-#include <gtest/gtest.h>
-#include <gtest/gtest-spi.h>
+#include "gmock/gmock.h"
+#include "gmock/internal/gmock-port.h"
+#include "gtest/gtest.h"
+#include "gtest/gtest-spi.h"
 
 #if GTEST_OS_CYGWIN
-#include <sys/types.h>  // For ssize_t. NOLINT
+# include <sys/types.h>  // For ssize_t. NOLINT
 #endif
+
+class ProtocolMessage;
+
+namespace proto2 {
+class Message;
+}  // namespace proto2
 
 namespace testing {
 namespace internal {
 
 namespace {
 
+using ::std::tr1::make_tuple;
 using ::std::tr1::tuple;
 
 TEST(ConvertIdentifierNameToWordsTest, WorksWhenNameContainsNoWord) {
@@ -89,100 +96,6 @@ TEST(ConvertIdentifierNameToWordsTest, WorksWhenNameIsMixture) {
             ConvertIdentifierNameToWords("_Chapter11Section_1_"));
 }
 
-// Tests that CompileAssertTypesEqual compiles when the type arguments are
-// equal.
-TEST(CompileAssertTypesEqual, CompilesWhenTypesAreEqual) {
-  CompileAssertTypesEqual<void, void>();
-  CompileAssertTypesEqual<int*, int*>();
-}
-
-// Tests that RemoveReference does not affect non-reference types.
-TEST(RemoveReferenceTest, DoesNotAffectNonReferenceType) {
-  CompileAssertTypesEqual<int, RemoveReference<int>::type>();
-  CompileAssertTypesEqual<const char, RemoveReference<const char>::type>();
-}
-
-// Tests that RemoveReference removes reference from reference types.
-TEST(RemoveReferenceTest, RemovesReference) {
-  CompileAssertTypesEqual<int, RemoveReference<int&>::type>();
-  CompileAssertTypesEqual<const char, RemoveReference<const char&>::type>();
-}
-
-// Tests GMOCK_REMOVE_REFERENCE_.
-
-template <typename T1, typename T2>
-void TestGMockRemoveReference() {
-  CompileAssertTypesEqual<T1, GMOCK_REMOVE_REFERENCE_(T2)>();
-}
-
-TEST(RemoveReferenceTest, MacroVersion) {
-  TestGMockRemoveReference<int, int>();
-  TestGMockRemoveReference<const char, const char&>();
-}
-
-
-// Tests that RemoveConst does not affect non-const types.
-TEST(RemoveConstTest, DoesNotAffectNonConstType) {
-  CompileAssertTypesEqual<int, RemoveConst<int>::type>();
-  CompileAssertTypesEqual<char&, RemoveConst<char&>::type>();
-}
-
-// Tests that RemoveConst removes const from const types.
-TEST(RemoveConstTest, RemovesConst) {
-  CompileAssertTypesEqual<int, RemoveConst<const int>::type>();
-}
-
-// Tests GMOCK_REMOVE_CONST_.
-
-template <typename T1, typename T2>
-void TestGMockRemoveConst() {
-  CompileAssertTypesEqual<T1, GMOCK_REMOVE_CONST_(T2)>();
-}
-
-TEST(RemoveConstTest, MacroVersion) {
-  TestGMockRemoveConst<int, int>();
-  TestGMockRemoveConst<double&, double&>();
-  TestGMockRemoveConst<char, const char>();
-}
-
-// Tests that AddReference does not affect reference types.
-TEST(AddReferenceTest, DoesNotAffectReferenceType) {
-  CompileAssertTypesEqual<int&, AddReference<int&>::type>();
-  CompileAssertTypesEqual<const char&, AddReference<const char&>::type>();
-}
-
-// Tests that AddReference adds reference to non-reference types.
-TEST(AddReferenceTest, AddsReference) {
-  CompileAssertTypesEqual<int&, AddReference<int>::type>();
-  CompileAssertTypesEqual<const char&, AddReference<const char>::type>();
-}
-
-// Tests GMOCK_ADD_REFERENCE_.
-
-template <typename T1, typename T2>
-void TestGMockAddReference() {
-  CompileAssertTypesEqual<T1, GMOCK_ADD_REFERENCE_(T2)>();
-}
-
-TEST(AddReferenceTest, MacroVersion) {
-  TestGMockAddReference<int&, int>();
-  TestGMockAddReference<const char&, const char&>();
-}
-
-// Tests GMOCK_REFERENCE_TO_CONST_.
-
-template <typename T1, typename T2>
-void TestGMockReferenceToConst() {
-  CompileAssertTypesEqual<T1, GMOCK_REFERENCE_TO_CONST_(T2)>();
-}
-
-TEST(GMockReferenceToConstTest, Works) {
-  TestGMockReferenceToConst<const char&, char>();
-  TestGMockReferenceToConst<const int&, const int>();
-  TestGMockReferenceToConst<const double&, double>();
-  TestGMockReferenceToConst<const string&, const string&>();
-}
-
 TEST(PointeeOfTest, WorksForSmartPointers) {
   CompileAssertTypesEqual<const char,
       PointeeOf<internal::linked_ptr<const char> >::type>();
@@ -202,42 +115,16 @@ TEST(GetRawPointerTest, WorksForSmartPointers) {
 
 TEST(GetRawPointerTest, WorksForRawPointers) {
   int* p = NULL;
-  EXPECT_EQ(NULL, GetRawPointer(p));
+  // Don't use EXPECT_EQ as no NULL-testing magic on Symbian.
+  EXPECT_TRUE(NULL == GetRawPointer(p));
   int n = 1;
   EXPECT_EQ(&n, GetRawPointer(&n));
 }
 
+// Tests KindOf<T>.
+
 class Base {};
 class Derived : public Base {};
-
-// Tests that ImplicitlyConvertible<T1, T2>::value is a compile-time constant.
-TEST(ImplicitlyConvertibleTest, ValueIsCompileTimeConstant) {
-  GMOCK_COMPILE_ASSERT_((ImplicitlyConvertible<int, int>::value), const_true);
-  GMOCK_COMPILE_ASSERT_((!ImplicitlyConvertible<void*, int*>::value),
-                        const_false);
-}
-
-// Tests that ImplicitlyConvertible<T1, T2>::value is true when T1 can
-// be implicitly converted to T2.
-TEST(ImplicitlyConvertibleTest, ValueIsTrueWhenConvertible) {
-  EXPECT_TRUE((ImplicitlyConvertible<int, double>::value));
-  EXPECT_TRUE((ImplicitlyConvertible<double, int>::value));
-  EXPECT_TRUE((ImplicitlyConvertible<int*, void*>::value));
-  EXPECT_TRUE((ImplicitlyConvertible<int*, const int*>::value));
-  EXPECT_TRUE((ImplicitlyConvertible<Derived&, const Base&>::value));
-  EXPECT_TRUE((ImplicitlyConvertible<const Base, Base>::value));
-}
-
-// Tests that ImplicitlyConvertible<T1, T2>::value is false when T1
-// cannot be implicitly converted to T2.
-TEST(ImplicitlyConvertibleTest, ValueIsFalseWhenNotConvertible) {
-  EXPECT_FALSE((ImplicitlyConvertible<double, int*>::value));
-  EXPECT_FALSE((ImplicitlyConvertible<void*, int*>::value));
-  EXPECT_FALSE((ImplicitlyConvertible<const int*, int*>::value));
-  EXPECT_FALSE((ImplicitlyConvertible<Base&, Derived&>::value));
-}
-
-// Tests KindOf<T>.
 
 TEST(KindOfTest, Bool) {
   EXPECT_EQ(kBool, GMOCK_KIND_OF_(bool));  // NOLINT
@@ -372,45 +259,6 @@ TEST(LosslessArithmeticConvertibleTest, FloatingPointToFloatingPoint) {
   }
 }
 
-// Tests that IsAProtocolMessage<T>::value is a compile-time constant.
-TEST(IsAProtocolMessageTest, ValueIsCompileTimeConstant) {
-  GMOCK_COMPILE_ASSERT_(IsAProtocolMessage<ProtocolMessage>::value, const_true);
-  GMOCK_COMPILE_ASSERT_(!IsAProtocolMessage<int>::value, const_false);
-}
-
-// Tests that IsAProtocolMessage<T>::value is true when T is
-// ProtocolMessage or a sub-class of it.
-TEST(IsAProtocolMessageTest, ValueIsTrueWhenTypeIsAProtocolMessage) {
-  EXPECT_TRUE(IsAProtocolMessage<ProtocolMessage>::value);
-#if GMOCK_HAS_PROTOBUF_
-  EXPECT_TRUE(IsAProtocolMessage<const TestMessage>::value);
-#endif  // GMOCK_HAS_PROTOBUF_
-}
-
-// Tests that IsAProtocolMessage<T>::value is false when T is neither
-// ProtocolMessage nor a sub-class of it.
-TEST(IsAProtocolMessageTest, ValueIsFalseWhenTypeIsNotAProtocolMessage) {
-  EXPECT_FALSE(IsAProtocolMessage<int>::value);
-  EXPECT_FALSE(IsAProtocolMessage<const Base>::value);
-}
-
-// Tests IsContainerTest.
-
-class NonContainer {};
-
-TEST(IsContainerTestTest, WorksForNonContainer) {
-  EXPECT_EQ(sizeof(IsNotContainer), sizeof(IsContainerTest<int>(0)));
-  EXPECT_EQ(sizeof(IsNotContainer), sizeof(IsContainerTest<char[5]>(0)));
-  EXPECT_EQ(sizeof(IsNotContainer), sizeof(IsContainerTest<NonContainer>(0)));
-}
-
-TEST(IsContainerTestTest, WorksForContainer) {
-  EXPECT_EQ(sizeof(IsContainer),
-            sizeof(IsContainerTest<std::vector<bool> >(0)));
-  EXPECT_EQ(sizeof(IsContainer),
-            sizeof(IsContainerTest<std::map<int, double> >(0)));
-}
-
 // Tests the TupleMatches() template function.
 
 TEST(TupleMatchesTest, WorksForSize0) {
@@ -462,20 +310,16 @@ TEST(AssertTest, SucceedsOnTrue) {
   Assert(true, __FILE__, __LINE__);  // This should succeed too.
 }
 
-#if GTEST_HAS_DEATH_TEST
-
 // Tests that Assert(false, ...) generates a fatal failure.
 TEST(AssertTest, FailsFatallyOnFalse) {
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     Assert(false, __FILE__, __LINE__, "This should fail.");
   }, "");
 
-  EXPECT_DEATH({  // NOLINT
+  EXPECT_DEATH_IF_SUPPORTED({
     Assert(false, __FILE__, __LINE__);
   }, "");
 }
-
-#endif  // GTEST_HAS_DEATH_TEST
 
 // Tests that Expect(true, ...) succeeds.
 TEST(ExpectTest, SucceedsOnTrue) {
@@ -494,8 +338,44 @@ TEST(ExpectTest, FailsNonfatallyOnFalse) {
   }, "Expectation failed");
 }
 
-// TODO(wan@google.com): find a way to re-enable these tests.
-#if 0
+// Tests LogIsVisible().
+
+class LogIsVisibleTest : public ::testing::Test {
+ protected:
+  virtual void SetUp() {
+    // The code needs to work when both ::string and ::std::string are
+    // defined and the flag is implemented as a
+    // testing::internal::String.  In this case, without the call to
+    // c_str(), the compiler will complain that it cannot figure out
+    // whether the String flag should be converted to a ::string or an
+    // ::std::string before being assigned to original_verbose_.
+    original_verbose_ = GMOCK_FLAG(verbose).c_str();
+  }
+
+  virtual void TearDown() { GMOCK_FLAG(verbose) = original_verbose_; }
+
+  string original_verbose_;
+};
+
+TEST_F(LogIsVisibleTest, AlwaysReturnsTrueIfVerbosityIsInfo) {
+  GMOCK_FLAG(verbose) = kInfoVerbosity;
+  EXPECT_TRUE(LogIsVisible(kInfo));
+  EXPECT_TRUE(LogIsVisible(kWarning));
+}
+
+TEST_F(LogIsVisibleTest, AlwaysReturnsFalseIfVerbosityIsError) {
+  GMOCK_FLAG(verbose) = kErrorVerbosity;
+  EXPECT_FALSE(LogIsVisible(kInfo));
+  EXPECT_FALSE(LogIsVisible(kWarning));
+}
+
+TEST_F(LogIsVisibleTest, WorksWhenVerbosityIsWarning) {
+  GMOCK_FLAG(verbose) = kWarningVerbosity;
+  EXPECT_FALSE(LogIsVisible(kInfo));
+  EXPECT_TRUE(LogIsVisible(kWarning));
+}
+
+#if GTEST_HAS_STREAM_REDIRECTION
 
 // Tests the Log() function.
 
@@ -505,16 +385,16 @@ void TestLogWithSeverity(const string& verbosity, LogSeverity severity,
                          bool should_print) {
   const string old_flag = GMOCK_FLAG(verbose);
   GMOCK_FLAG(verbose) = verbosity;
-  CaptureTestStdout();
+  CaptureStdout();
   Log(severity, "Test log.\n", 0);
   if (should_print) {
-    EXPECT_PRED2(RE::FullMatch,
-                 GetCapturedTestStdout(),
-                 severity == WARNING ?
-                 "\nGMOCK WARNING:\nTest log\\.\nStack trace:\n[\\s\\S]*" :
-                 "\nTest log\\.\nStack trace:\n[\\s\\S]*");
+    EXPECT_THAT(GetCapturedStdout().c_str(),
+                ContainsRegex(
+                    severity == kWarning ?
+                    "^\nGMOCK WARNING:\nTest log\\.\nStack trace:\n" :
+                    "^\nTest log\\.\nStack trace:\n"));
   } else {
-    EXPECT_EQ("", GetCapturedTestStdout());
+    EXPECT_STREQ("", GetCapturedStdout().c_str());
   }
   GMOCK_FLAG(verbose) = old_flag;
 }
@@ -522,61 +402,66 @@ void TestLogWithSeverity(const string& verbosity, LogSeverity severity,
 // Tests that when the stack_frames_to_skip parameter is negative,
 // Log() doesn't include the stack trace in the output.
 TEST(LogTest, NoStackTraceWhenStackFramesToSkipIsNegative) {
+  const string saved_flag = GMOCK_FLAG(verbose);
   GMOCK_FLAG(verbose) = kInfoVerbosity;
-  CaptureTestStdout();
-  Log(INFO, "Test log.\n", -1);
-  EXPECT_EQ("\nTest log.\n", GetCapturedTestStdout());
+  CaptureStdout();
+  Log(kInfo, "Test log.\n", -1);
+  EXPECT_STREQ("\nTest log.\n", GetCapturedStdout().c_str());
+  GMOCK_FLAG(verbose) = saved_flag;
 }
 
 // Tests that in opt mode, a positive stack_frames_to_skip argument is
 // treated as 0.
 TEST(LogTest, NoSkippingStackFrameInOptMode) {
-  CaptureTestStdout();
-  Log(WARNING, "Test log.\n", 100);
-  const string log = GetCapturedTestStdout();
-#ifdef NDEBUG
+  CaptureStdout();
+  Log(kWarning, "Test log.\n", 100);
+  const String log = GetCapturedStdout();
+
+# if defined(NDEBUG) && GTEST_GOOGLE3_MODE_
+
   // In opt mode, no stack frame should be skipped.
   EXPECT_THAT(log, ContainsRegex("\nGMOCK WARNING:\n"
                                  "Test log\\.\n"
                                  "Stack trace:\n"
                                  ".+"));
-#else
+# else
+
   // In dbg mode, the stack frames should be skipped.
-  EXPECT_EQ("\nGMOCK WARNING:\n"
-            "Test log.\n"
-            "Stack trace:\n", log);
-#endif  // NDEBUG
+  EXPECT_STREQ("\nGMOCK WARNING:\n"
+               "Test log.\n"
+               "Stack trace:\n", log.c_str());
+# endif
 }
 
 // Tests that all logs are printed when the value of the
 // --gmock_verbose flag is "info".
 TEST(LogTest, AllLogsArePrintedWhenVerbosityIsInfo) {
-  TestLogWithSeverity(kInfoVerbosity, INFO, true);
-  TestLogWithSeverity(kInfoVerbosity, WARNING, true);
+  TestLogWithSeverity(kInfoVerbosity, kInfo, true);
+  TestLogWithSeverity(kInfoVerbosity, kWarning, true);
 }
 
 // Tests that only warnings are printed when the value of the
 // --gmock_verbose flag is "warning".
 TEST(LogTest, OnlyWarningsArePrintedWhenVerbosityIsWarning) {
-  TestLogWithSeverity(kWarningVerbosity, INFO, false);
-  TestLogWithSeverity(kWarningVerbosity, WARNING, true);
+  TestLogWithSeverity(kWarningVerbosity, kInfo, false);
+  TestLogWithSeverity(kWarningVerbosity, kWarning, true);
 }
 
 // Tests that no logs are printed when the value of the
 // --gmock_verbose flag is "error".
 TEST(LogTest, NoLogsArePrintedWhenVerbosityIsError) {
-  TestLogWithSeverity(kErrorVerbosity, INFO, false);
-  TestLogWithSeverity(kErrorVerbosity, WARNING, false);
+  TestLogWithSeverity(kErrorVerbosity, kInfo, false);
+  TestLogWithSeverity(kErrorVerbosity, kWarning, false);
 }
 
 // Tests that only warnings are printed when the value of the
 // --gmock_verbose flag is invalid.
 TEST(LogTest, OnlyWarningsArePrintedWhenVerbosityIsInvalid) {
-  TestLogWithSeverity("invalid", INFO, false);
-  TestLogWithSeverity("invalid", WARNING, true);
+  TestLogWithSeverity("invalid", kInfo, false);
+  TestLogWithSeverity("invalid", kWarning, true);
 }
 
-#endif  // 0
+#endif  // GTEST_HAS_STREAM_REDIRECTION
 
 TEST(TypeTraitsTest, true_type) {
   EXPECT_TRUE(true_type::value);
@@ -613,18 +498,17 @@ TEST(TypeTraitsTest, remove_reference) {
   EXPECT_TRUE((type_equals<double*, remove_reference<double*>::type>::value));
 }
 
-// TODO(wan@google.com): find a way to re-enable these tests.
-#if 0
+#if GTEST_HAS_STREAM_REDIRECTION
 
 // Verifies that Log() behaves correctly for the given verbosity level
 // and log severity.
-string GrabOutput(void(*logger)(), const char* verbosity) {
+String GrabOutput(void(*logger)(), const char* verbosity) {
   const string saved_flag = GMOCK_FLAG(verbose);
   GMOCK_FLAG(verbose) = verbosity;
-  CaptureTestStdout();
+  CaptureStdout();
   logger();
   GMOCK_FLAG(verbose) = saved_flag;
-  return GetCapturedTestStdout();
+  return GetCapturedStdout();
 }
 
 class DummyMock {
@@ -648,13 +532,13 @@ TEST(ExpectCallTest, LogsWhenVerbosityIsInfo) {
 // Verifies that EXPECT_CALL doesn't log
 // if the --gmock_verbose flag is set to "warning".
 TEST(ExpectCallTest, DoesNotLogWhenVerbosityIsWarning) {
-  EXPECT_EQ("", GrabOutput(ExpectCallLogger, kWarningVerbosity));
+  EXPECT_STREQ("", GrabOutput(ExpectCallLogger, kWarningVerbosity).c_str());
 }
 
 // Verifies that EXPECT_CALL doesn't log
 // if the --gmock_verbose flag is set to "error".
 TEST(ExpectCallTest,  DoesNotLogWhenVerbosityIsError) {
-  EXPECT_EQ("", GrabOutput(ExpectCallLogger, kErrorVerbosity));
+  EXPECT_STREQ("", GrabOutput(ExpectCallLogger, kErrorVerbosity).c_str());
 }
 
 void OnCallLogger() {
@@ -671,13 +555,13 @@ TEST(OnCallTest, LogsWhenVerbosityIsInfo) {
 // Verifies that ON_CALL doesn't log
 // if the --gmock_verbose flag is set to "warning".
 TEST(OnCallTest, DoesNotLogWhenVerbosityIsWarning) {
-  EXPECT_EQ("", GrabOutput(OnCallLogger, kWarningVerbosity));
+  EXPECT_STREQ("", GrabOutput(OnCallLogger, kWarningVerbosity).c_str());
 }
 
 // Verifies that ON_CALL doesn't log if
 // the --gmock_verbose flag is set to "error".
 TEST(OnCallTest, DoesNotLogWhenVerbosityIsError) {
-  EXPECT_EQ("", GrabOutput(OnCallLogger, kErrorVerbosity));
+  EXPECT_STREQ("", GrabOutput(OnCallLogger, kErrorVerbosity).c_str());
 }
 
 void OnCallAnyArgumentLogger() {
@@ -691,7 +575,80 @@ TEST(OnCallTest, LogsAnythingArgument) {
               HasSubstr("ON_CALL(mock, TestMethodArg(_)"));
 }
 
-#endif  // 0
+#endif  // GTEST_HAS_STREAM_REDIRECTION
+
+// Tests StlContainerView.
+
+TEST(StlContainerViewTest, WorksForStlContainer) {
+  StaticAssertTypeEq<std::vector<int>,
+      StlContainerView<std::vector<int> >::type>();
+  StaticAssertTypeEq<const std::vector<double>&,
+      StlContainerView<std::vector<double> >::const_reference>();
+
+  typedef std::vector<char> Chars;
+  Chars v1;
+  const Chars& v2(StlContainerView<Chars>::ConstReference(v1));
+  EXPECT_EQ(&v1, &v2);
+
+  v1.push_back('a');
+  Chars v3 = StlContainerView<Chars>::Copy(v1);
+  EXPECT_THAT(v3, Eq(v3));
+}
+
+TEST(StlContainerViewTest, WorksForStaticNativeArray) {
+  StaticAssertTypeEq<NativeArray<int>,
+      StlContainerView<int[3]>::type>();
+  StaticAssertTypeEq<NativeArray<double>,
+      StlContainerView<const double[4]>::type>();
+  StaticAssertTypeEq<NativeArray<char[3]>,
+      StlContainerView<const char[2][3]>::type>();
+
+  StaticAssertTypeEq<const NativeArray<int>,
+      StlContainerView<int[2]>::const_reference>();
+
+  int a1[3] = { 0, 1, 2 };
+  NativeArray<int> a2 = StlContainerView<int[3]>::ConstReference(a1);
+  EXPECT_EQ(3U, a2.size());
+  EXPECT_EQ(a1, a2.begin());
+
+  const NativeArray<int> a3 = StlContainerView<int[3]>::Copy(a1);
+  ASSERT_EQ(3U, a3.size());
+  EXPECT_EQ(0, a3.begin()[0]);
+  EXPECT_EQ(1, a3.begin()[1]);
+  EXPECT_EQ(2, a3.begin()[2]);
+
+  // Makes sure a1 and a3 aren't aliases.
+  a1[0] = 3;
+  EXPECT_EQ(0, a3.begin()[0]);
+}
+
+TEST(StlContainerViewTest, WorksForDynamicNativeArray) {
+  StaticAssertTypeEq<NativeArray<int>,
+      StlContainerView<tuple<const int*, size_t> >::type>();
+  StaticAssertTypeEq<NativeArray<double>,
+      StlContainerView<tuple<linked_ptr<double>, int> >::type>();
+
+  StaticAssertTypeEq<const NativeArray<int>,
+      StlContainerView<tuple<const int*, int> >::const_reference>();
+
+  int a1[3] = { 0, 1, 2 };
+  const int* const p1 = a1;
+  NativeArray<int> a2 = StlContainerView<tuple<const int*, int> >::
+      ConstReference(make_tuple(p1, 3));
+  EXPECT_EQ(3U, a2.size());
+  EXPECT_EQ(a1, a2.begin());
+
+  const NativeArray<int> a3 = StlContainerView<tuple<int*, size_t> >::
+      Copy(make_tuple(static_cast<int*>(a1), 3));
+  ASSERT_EQ(3U, a3.size());
+  EXPECT_EQ(0, a3.begin()[0]);
+  EXPECT_EQ(1, a3.begin()[1]);
+  EXPECT_EQ(2, a3.begin()[2]);
+
+  // Makes sure a1 and a3 aren't aliases.
+  a1[0] = 3;
+  EXPECT_EQ(0, a3.begin()[0]);
+}
 
 }  // namespace
 }  // namespace internal

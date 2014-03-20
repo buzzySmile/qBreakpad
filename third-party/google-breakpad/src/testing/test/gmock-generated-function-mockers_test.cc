@@ -33,25 +33,25 @@
 //
 // This file tests the function mocker classes.
 
-#include <gmock/gmock-generated-function-mockers.h>
-
-#include <map>
-#include <string>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include "gmock/gmock-generated-function-mockers.h"
 
 #if GTEST_OS_WINDOWS
 // MSDN says the header file to be included for STDMETHOD is BaseTyps.h but
 // we are getting compiler errors if we use basetyps.h, hence including
 // objbase.h for definition of STDMETHOD.
-#include <objbase.h>
+# include <objbase.h>
 #endif  // GTEST_OS_WINDOWS
+
+#include <map>
+#include <string>
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 // There is a bug in MSVC (fixed in VS 2008) that prevents creating a
 // mock for a function with const arguments, so we don't test such
 // cases for MSVC versions older than 2008.
 #if !GTEST_OS_WINDOWS || (_MSC_VER >= 1500)
-#define GMOCK_ALLOWS_CONST_PARAM_FUNCTIONS
+# define GMOCK_ALLOWS_CONST_PARAM_FUNCTIONS
 #endif  // !GTEST_OS_WINDOWS || (_MSC_VER >= 1500)
 
 namespace testing {
@@ -66,6 +66,7 @@ using testing::Const;
 using testing::DoDefault;
 using testing::Eq;
 using testing::Lt;
+using testing::MockFunction;
 using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
@@ -113,6 +114,8 @@ class FooInterface {
 
 class MockFoo : public FooInterface {
  public:
+  MockFoo() {}
+
   // Makes sure that a mock function parameter can be named.
   MOCK_METHOD1(VoidReturning, void(int n));  // NOLINT
 
@@ -148,6 +151,9 @@ class MockFoo : public FooInterface {
       const string& k));
   MOCK_CONST_METHOD1_WITH_CALLTYPE(STDMETHODCALLTYPE, CTConst, char(int));
 #endif  // GTEST_OS_WINDOWS
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockFoo);
 };
 
 class FunctionMockerTest : public testing::Test {
@@ -304,7 +310,12 @@ TEST_F(FunctionMockerTest, MocksFunctionsConstFunctionWithCallType) {
 
 class MockB {
  public:
+  MockB() {}
+
   MOCK_METHOD0(DoB, void());
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockB);
 };
 
 // Tests that functions with no EXPECT_CALL() ruls can be called any
@@ -344,10 +355,15 @@ class StackInterface {
 template <typename T>
 class MockStack : public StackInterface<T> {
  public:
+  MockStack() {}
+
   MOCK_METHOD1_T(Push, void(const T& elem));
   MOCK_METHOD0_T(Pop, void());
   MOCK_CONST_METHOD0_T(GetSize, int());  // NOLINT
   MOCK_CONST_METHOD0_T(GetTop, const T&());
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockStack);
 };
 
 // Tests that template mock works.
@@ -392,10 +408,15 @@ class StackInterfaceWithCallType {
 template <typename T>
 class MockStackWithCallType : public StackInterfaceWithCallType<T> {
  public:
+  MockStackWithCallType() {}
+
   MOCK_METHOD1_T_WITH_CALLTYPE(STDMETHODCALLTYPE, Push, void(const T& elem));
   MOCK_METHOD0_T_WITH_CALLTYPE(STDMETHODCALLTYPE, Pop, void());
   MOCK_CONST_METHOD0_T_WITH_CALLTYPE(STDMETHODCALLTYPE, GetSize, int());
   MOCK_CONST_METHOD0_T_WITH_CALLTYPE(STDMETHODCALLTYPE, GetTop, const T&());
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockStackWithCallType);
 };
 
 // Tests that template mock with calltype works.
@@ -429,7 +450,12 @@ TEST(TemplateMockTestWithCallType, Works) {
 
 class MockOverloadedOnArgNumber {
  public:
+  MockOverloadedOnArgNumber() {}
+
   MY_MOCK_METHODS1_;
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockOverloadedOnArgNumber);
 };
 
 TEST(OverloadedMockMethodTest, CanOverloadOnArgNumberInMacroBody) {
@@ -449,7 +475,12 @@ TEST(OverloadedMockMethodTest, CanOverloadOnArgNumberInMacroBody) {
 
 class MockOverloadedOnConstness {
  public:
+  MockOverloadedOnConstness() {}
+
   MY_MOCK_METHODS2_;
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockOverloadedOnConstness);
 };
 
 TEST(OverloadedMockMethodTest, CanOverloadOnConstnessInMacroBody) {
@@ -460,6 +491,49 @@ TEST(OverloadedMockMethodTest, CanOverloadOnConstnessInMacroBody) {
 
   EXPECT_EQ(2, mock.Overloaded(1));
   EXPECT_EQ(3, const_mock->Overloaded(1));
+}
+
+TEST(MockFunctionTest, WorksForVoidNullary) {
+  MockFunction<void()> foo;
+  EXPECT_CALL(foo, Call());
+  foo.Call();
+}
+
+TEST(MockFunctionTest, WorksForNonVoidNullary) {
+  MockFunction<int()> foo;
+  EXPECT_CALL(foo, Call())
+      .WillOnce(Return(1))
+      .WillOnce(Return(2));
+  EXPECT_EQ(1, foo.Call());
+  EXPECT_EQ(2, foo.Call());
+}
+
+TEST(MockFunctionTest, WorksForVoidUnary) {
+  MockFunction<void(int)> foo;
+  EXPECT_CALL(foo, Call(1));
+  foo.Call(1);
+}
+
+TEST(MockFunctionTest, WorksForNonVoidBinary) {
+  MockFunction<int(bool, int)> foo;
+  EXPECT_CALL(foo, Call(false, 42))
+      .WillOnce(Return(1))
+      .WillOnce(Return(2));
+  EXPECT_CALL(foo, Call(true, Ge(100)))
+      .WillOnce(Return(3));
+  EXPECT_EQ(1, foo.Call(false, 42));
+  EXPECT_EQ(2, foo.Call(false, 42));
+  EXPECT_EQ(3, foo.Call(true, 120));
+}
+
+TEST(MockFunctionTest, WorksFor10Arguments) {
+  MockFunction<int(bool a0, char a1, int a2, int a3, int a4,
+                   int a5, int a6, char a7, int a8, bool a9)> foo;
+  EXPECT_CALL(foo, Call(_, 'a', _, _, _, _, _, _, _, _))
+      .WillOnce(Return(1))
+      .WillOnce(Return(2));
+  EXPECT_EQ(1, foo.Call(false, 'a', 0, 0, 0, 0, 0, 'b', 0, true));
+  EXPECT_EQ(2, foo.Call(true, 'a', 0, 0, 0, 0, 0, 'b', 1, false));
 }
 
 }  // namespace gmock_generated_function_mockers_test

@@ -34,7 +34,7 @@
 // This program is for verifying that a leaked mock object can be
 // caught by Google Mock's leak detector.
 
-#include <gmock/gmock.h>
+#include "gmock/gmock.h"
 
 namespace {
 
@@ -48,7 +48,12 @@ class FooInterface {
 
 class MockFoo : public FooInterface {
  public:
+  MockFoo() {}
+
   MOCK_METHOD0(DoThis, void());
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockFoo);
 };
 
 TEST(LeakTest, LeakedMockWithExpectCallCausesFailureWhenLeakCheckingIsEnabled) {

@@ -27,7 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "processor/scoped_ptr.h"
+#include "common/scoped_ptr.h"
 #include "common/mac/string_utilities.h"
 
 namespace MacStringUtils {
@@ -55,9 +55,9 @@ std::string ConvertToString(CFStringRef str) {
 
 unsigned int IntegerValueAtIndex(string &str, unsigned int idx) {
   string digits("0123456789"), temp;
-  unsigned int start = 0;
-  unsigned int end;
-  unsigned int found = 0;
+  size_t start = 0;
+  size_t end;
+  size_t found = 0;
   unsigned int result = 0;
 
   for (; found <= idx; ++found) {

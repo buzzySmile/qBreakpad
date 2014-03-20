@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2008 Google Inc.
+# Copyright 2008 Google Inc.  All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,11 +31,17 @@ __author__ = 'nnorwitz@google.com (Neal Norwitz)'
 
 import os
 import re
-import sets
 import sys
 
 from cpp import ast
 from cpp import utils
+
+# Preserve compatibility with Python 2.3.
+try:
+  _dummy = set
+except NameError:
+  import sets
+  set = sets.Set
 
 _VERSION = (1, 0, 1)  # The version of this script.
 # How many spaces to indent.  Can set me with the INDENT environment variable.
@@ -45,6 +51,7 @@ _INDENT = 2
 def _GenerateMethods(output_lines, source, class_node):
   function_type = ast.FUNCTION_VIRTUAL | ast.FUNCTION_PURE_VIRTUAL
   ctor_or_dtor = ast.FUNCTION_CTOR | ast.FUNCTION_DTOR
+  indent = ' ' * _INDENT
 
   for node in class_node.body:
     # We only care about virtual functions.
@@ -62,28 +69,57 @@ def _GenerateMethods(output_lines, source, class_node):
         if node.return_type.modifiers:
           modifiers = ' '.join(node.return_type.modifiers) + ' '
         return_type = modifiers + node.return_type.name
+        template_args = [arg.name for arg in node.return_type.templated_types]
+        if template_args:
+          return_type += '<' + ', '.join(template_args) + '>'
+          if len(template_args) > 1:
+            for line in [
+                '// The following line won\'t really compile, as the return',
+                '// type has multiple template arguments.  To fix it, use a',
+                '// typedef for the return type.']:
+              output_lines.append(indent + line)
         if node.return_type.pointer:
           return_type += '*'
         if node.return_type.reference:
           return_type += '&'
-      prefix = 'MOCK_%sMETHOD%d' % (const, len(node.parameters))
+        num_parameters = len(node.parameters)
+        if len(node.parameters) == 1:
+          first_param = node.parameters[0]
+          if source[first_param.start:first_param.end].strip() == 'void':
+            # We must treat T(void) as a function with no parameters.
+            num_parameters = 0
+      mock_method_macro = 'MOCK_%sMETHOD%d' % (const, num_parameters)
       args = ''
       if node.parameters:
-        # Get the full text of the parameters from the start
-        # of the first parameter to the end of the last parameter.
-        start = node.parameters[0].start
-        end = node.parameters[-1].end
-        args = re.sub('  +', ' ', source[start:end].replace('\n', ''))
+        # Due to the parser limitations, it is impossible to keep comments
+        # while stripping the default parameters.  When defaults are
+        # present, we choose to strip them and comments (and produce
+        # compilable code).
+        # TODO(nnorwitz@google.com): Investigate whether it is possible to
+        # preserve parameter name when reconstructing parameter text from
+        # the AST.
+        if len([param for param in node.parameters if param.default]) > 0:
+          args = ', '.join(param.type.name for param in node.parameters)
+        else:
+          # Get the full text of the parameters from the start
+          # of the first parameter to the end of the last parameter.
+          start = node.parameters[0].start
+          end = node.parameters[-1].end
+          # Remove // comments.
+          args_strings = re.sub(r'//.*', '', source[start:end])
+          # Condense multiple spaces and eliminate newlines putting the
+          # parameters together on a single line.  Ensure there is a
+          # space in an argument which is split by a newline without
+          # intervening whitespace, e.g.: int\nBar
+          args = re.sub('  +', ' ', args_strings.replace('\n', ' '))
 
-      # Create the prototype.
-      indent = ' ' * _INDENT
-      line = ('%s%s(%s,\n%s%s(%s));' %
-              (indent, prefix, node.name, indent*3, return_type, args))
-      output_lines.append(line)
+      # Create the mock method definition.
+      output_lines.extend(['%s%s(%s,' % (indent, mock_method_macro, node.name),
+                           '%s%s(%s));' % (indent*3, return_type, args)])
 
 
 def _GenerateMocks(filename, source, ast_list, desired_class_names):
-  processed_class_names = sets.Set()
+  processed_class_names = set()
   lines = []
   for node in ast_list:
     if (isinstance(node, ast.Class) and node.body and
@@ -120,8 +156,6 @@ def _GenerateMocks(filename, source, ast_list, desired_class_names):
           lines.append('}  // namespace %s' % class_node.namespace[i])
         lines.append('')  # Add an extra newline.
 
-  sys.stdout.write('\n'.join(lines))
-
   if desired_class_names:
     missing_class_name_list = list(desired_class_names - processed_class_names)
     if missing_class_name_list:
@@ -129,7 +163,9 @@ def _GenerateMocks(filename, source, ast_list, desired_class_names):
       sys.stderr.write('Class(es) not found in %s: %s\n' %
                        (filename, ', '.join(missing_class_name_list)))
   elif not processed_class_names:
-      sys.stderr.write('No class found in %s\n' % filename)
+    sys.stderr.write('No class found in %s\n' % filename)
+
+  return lines
 
 
 def main(argv=sys.argv):
@@ -150,7 +186,7 @@ def main(argv=sys.argv):
   filename = argv[1]
   desired_class_names = None  # None means all classes in the source file.
   if len(argv) >= 3:
-    desired_class_names = sets.Set(argv[2:])
+    desired_class_names = set(argv[2:])
   source = utils.ReadFile(filename)
   if source is None:
     return 1
@@ -164,7 +200,8 @@ def main(argv=sys.argv):
     # An error message was already printed since we couldn't parse.
     pass
   else:
-    _GenerateMocks(filename, source, entire_ast, desired_class_names)
+    lines = _GenerateMocks(filename, source, entire_ast, desired_class_names)
+    sys.stdout.write('\n'.join(lines))
 
 
 if __name__ == '__main__':

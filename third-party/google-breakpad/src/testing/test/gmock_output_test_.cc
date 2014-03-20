@@ -32,12 +32,12 @@
 // Tests Google Mock's output in various scenarios.  This ensures that
 // Google Mock's messages are readable and useful.
 
-#include <gmock/gmock.h>
+#include "gmock/gmock.h"
 
 #include <stdio.h>
 #include <string>
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 using testing::_;
 using testing::AnyNumber;
@@ -49,9 +49,14 @@ using testing::Sequence;
 
 class MockFoo {
  public:
+  MockFoo() {}
+
   MOCK_METHOD3(Bar, char(const std::string& s, int i, double x));
   MOCK_METHOD2(Bar2, bool(int x, int y));
   MOCK_METHOD2(Bar3, void(int x, int y));
+
+ private:
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(MockFoo);
 };
 
 class GMockOutputTest : public testing::Test {
@@ -161,6 +166,10 @@ TEST_F(GMockOutputTest, UnsatisfiedPrerequisites) {
   foo_.Bar2(1, 0);
 }
 
+TEST_F(GMockOutputTest, UnsatisfiedWith) {
+  EXPECT_CALL(foo_, Bar2(_, _)).With(Ge());
+}
+
 TEST_F(GMockOutputTest, UnsatisfiedExpectation) {
   EXPECT_CALL(foo_, Bar(_, _, _));
   EXPECT_CALL(foo_, Bar2(0, _))
@@ -177,19 +186,19 @@ TEST_F(GMockOutputTest, MismatchArguments) {
   foo_.Bar(s, 0, 0);
 }
 
-TEST_F(GMockOutputTest, MismatchWithArguments) {
+TEST_F(GMockOutputTest, MismatchWith) {
   EXPECT_CALL(foo_, Bar2(Ge(2), Ge(1)))
-      .WithArguments(Ge());
+      .With(Ge());
 
-  foo_.Bar2(2, 3);  // Mismatch WithArguments()
+  foo_.Bar2(2, 3);  // Mismatch With()
   foo_.Bar2(2, 1);
 }
 
-TEST_F(GMockOutputTest, MismatchArgumentsAndWithArguments) {
+TEST_F(GMockOutputTest, MismatchArgumentsAndWith) {
   EXPECT_CALL(foo_, Bar2(Ge(2), Ge(1)))
-      .WithArguments(Ge());
+      .With(Ge());
 
-  foo_.Bar2(1, 3);  // Mismatch arguments and mismatch WithArguments()
+  foo_.Bar2(1, 3);  // Mismatch arguments and mismatch With()
   foo_.Bar2(2, 1);
 }
 
