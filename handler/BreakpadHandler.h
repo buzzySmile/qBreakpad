@@ -39,26 +39,26 @@ class GlobalHandlerPrivate;
 
 enum ReportCrashesToSystem
 {
-	ReportUnhandled = 1,
-	AlwaysReport = 2
+    ReportUnhandled = 1,
+    AlwaysReport = 2
 };
 
 class GlobalHandler
 {
 public:
-	static GlobalHandler* instance();
+    static GlobalHandler* instance();
 
-	void setDumpPath(const QString& path);
-	void setReporter(const QString& reporter);
-	void setReportCrashesToSystem(ReportCrashesToSystem report);
-	bool writeMinidump();
+    void setDumpPath(const QString& path);
+    void setReporter(const QString& reporter);
+    void setReportCrashesToSystem(ReportCrashesToSystem report);
+    bool writeMinidump();
 
 private:
-	GlobalHandler();
-	~GlobalHandler();
-	Q_DISABLE_COPY(GlobalHandler)
+    GlobalHandler();
+    ~GlobalHandler();
+    Q_DISABLE_COPY(GlobalHandler)
 
-	GlobalHandlerPrivate* d;
+    GlobalHandlerPrivate* d;
 };
 
 }	// namespace

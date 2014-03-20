@@ -1,13 +1,5 @@
 # this file should be included in .pro file of protected program
 
-unix:!mac {
-	debug {
-		# google-breakpad supports only stabs symbols on GNU/Linux and *BSD for now
-		QMAKE_CFLAGS_DEBUG +=-gstabs
-		QMAKE_CXXFLAGS_DEBUG +=-gstabs
-	}
-}
-
 mac {
 	LIBS += -lcrypto
 }
