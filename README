@@ -1,1 +1,5 @@
-This is cross-platform crash handler, based on Qt and google-breakpad.
+This is cross-platform crash handler, created for Qt on top of google-breakpad C++ library. At 20 Mar 2014, works only on Linux and Windows - other platforms are broken, and your can either fix them or use google-breakpad directly.
+
+About Google Breakpad
+=================
+http://code.google.com/p/google-breakpad/wiki/GettingStartedWithBreakpad
