@@ -13,14 +13,18 @@ unix {
 
 # mac os x
 mac {
-    SOURCES += $$BREAKPAD_PATH/client/mac/handler/exception_handler.cc \
+    OBJECTIVE_SOURCES += $$BREAKPAD_PATH/client/mac/handler/exception_handler.cc \
+        $$BREAKPAD_PATH/client/mac/crash_generation/crash_generation_client.cc \
         $$BREAKPAD_PATH/client/mac/handler/minidump_generator.cc \
         $$BREAKPAD_PATH/client/mac/handler/dynamic_images.cc \
+        $$BREAKPAD_PATH/client/mac/handler/breakpad_nlist_64.cc \
         $$BREAKPAD_PATH/common/mac/string_utilities.cc \
         $$BREAKPAD_PATH/common/mac/file_id.cc \
         $$BREAKPAD_PATH/common/mac/macho_id.cc \
         $$BREAKPAD_PATH/common/mac/macho_utilities.cc \
-        $$BREAKPAD_PATH/common/mac/macho_walker.cc
+        $$BREAKPAD_PATH/common/mac/macho_walker.cc \
+        $$BREAKPAD_PATH/common/mac/MachIPC.mm \
+        $$BREAKPAD_PATH/common/mac/bootstrap_compat.cc
 }
 
 # other *nix
