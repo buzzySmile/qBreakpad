@@ -76,12 +76,16 @@ bool launcher(const char* program, const char* const arguments[])
 
 
 #if defined(Q_OS_WIN32)
-bool DumpCallback(const wchar_t* dump_path,
+bool DumpCallback(const wchar_t* dump_dir,
                   const wchar_t* minidump_id,
                   void* context,
                   EXCEPTION_POINTERS* exinfo,
                   MDRawAssertionInfo* assertion,
                   bool succeeded)
+#elif defined(Q_OS_MAC)
+bool DumpCallback(const char *dump_dir,
+                  const char *minidump_id,
+                  void *context, bool succeeded)
 #else
 bool DumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,
                   void* context,
@@ -102,13 +106,14 @@ bool DumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,
     */
     // But I'm brave man.
 
-#ifdef Q_OS_LINUX
-    qDebug("%s, dump path: %s\n", succeeded ? "Succeed to write minidump" : "Failed to write minidump", descriptor.path());
-#endif
-
-#ifdef Q_OS_WIN32
-    QString path = QString::fromWCharArray(dump_path) + QLatin1String("/") + QString::fromWCharArray(minidump_id);
+#if defined(Q_OS_WIN32)
+    QString path = QString::fromWCharArray(dump_dir) + QLatin1String("/") + QString::fromWCharArray(minidump_id);
+    qDebug("%s, dump path: %s\n", succeeded ? "Succeed to write minidump" : "Failed to write minidump", qPrintable(path))
+#elif defined(Q_OS_MAC)
+    QString path = QString::fromUtf8(dump_dir) + QLatin1String("/") + QString::fromUtf8(minidump_id);
     qDebug("%s, dump path: %s\n", succeeded ? "Succeed to write minidump" : "Failed to write minidump", qPrintable(path));
+#else
+    qDebug("%s, dump path: %s\n", succeeded ? "Succeed to write minidump" : "Failed to write minidump", descriptor.path());
 #endif
 
     launcher(GlobalHandlerPrivate::reporter_, 0);
@@ -158,13 +163,16 @@ void GlobalHandler::setDumpPath(const QString& path)
         return;
     }
 
-#ifdef Q_OS_LINUX
-    d->handler_ = new google_breakpad::ExceptionHandler(google_breakpad::MinidumpDescriptor(absPath.toStdString()),
-                                                        /*FilterCallback*/ 0, DumpCallback, /*context*/ 0, true, -1);
-#else
+#if defined(Q_OS_WIN32)
     d->handler_ = new google_breakpad::ExceptionHandler(absPath.toStdWString(), /*FilterCallback*/ 0,
                                                         DumpCallback, /*context*/ 0,
                                                         google_breakpad::ExceptionHandler::HANDLER_ALL);
+#elif defined(Q_OS_MAC)
+    d->handler_ = new google_breakpad::ExceptionHandler(absPath.toStdString(), /*FilterCallback*/ 0,
+                                                        DumpCallback, /*context*/ 0, true, NULL);
+#else
+    d->handler_ = new google_breakpad::ExceptionHandler(google_breakpad::MinidumpDescriptor(absPath.toStdString()),
+                                                        /*FilterCallback*/ 0, DumpCallback, /*context*/ 0, true, -1);
 #endif
 }
 
