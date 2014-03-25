@@ -8,14 +8,12 @@ Breakpad-Qt is Qt library to use google-breakpad crash reporting facilities. Sup
 How to use
 ----------------
 * Include "breakpad-qt-handler.pri" to your QtCreator project;
-* Setup linking with "breakpad-qt-handler" library;
-Linking example (breakpad added as git submodule):
+* Setup linking with "breakpad-qt-handler" library; example:
 ```c++
 QMAKE_LIBDIR += $$OUT_PWD/submodules/breakpad/handler
 LIBS += -lbreakpad-qt-handler
 ```
-* Use ```BreakpadHandler``` singleton class to enable automatic crash dumps generation on any failure;
-Usage example:
+* Use ```BreakpadHandler``` singleton class to enable automatic crash dumps generation on any failure; example:
 ```c++
 BreakpadQt::GlobalHandler::instance()->setDumpPath(QLatin1String("crashes"));
 ```
