@@ -1,6 +1,9 @@
 Breakpad-Qt
 ================
-Breakpad-Qt is Qt library to use google-breakpad crash reporting facilities. Supports Windows (MSVC only!), Linux and MacOSX.
+Breakpad-Qt is Qt library to use google-breakpad crash reporting facilities. Supports
+* Windows (but crash dump decoding will not work with MinGW compiler)
+* Linux
+* MacOS X
 
 How to use
 ----------------
