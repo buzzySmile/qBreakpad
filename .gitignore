@@ -1,2 +1,8 @@
+*.user
 *.pro.user
+*.autosave
+*.o
+*moc_*.cpp
+*Makefile*
+
 docs/html/
