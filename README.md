@@ -21,4 +21,4 @@ BreakpadQt::GlobalHandler::instance()->setDumpPath(QLatin1String("crashes"));
 
 Getting started with Google Breakpad
 ----------------
-http://code.google.com/p/google-breakpad/wiki/GettingStartedWithBreakpad
+https://chromium.googlesource.com/breakpad/breakpad/+/master/docs/getting_started_with_breakpad.md
