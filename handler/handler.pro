@@ -25,4 +25,4 @@ include($$PWD/../breakpad-qt-handler.pri)
 SOURCES += $$PWD/BreakpadHandler.cpp
 
 ## google-breakpad
-include($$PWD/../third-party/google-breakpad.pri)
+include($$PWD/../third_party/breakpad.pri)
