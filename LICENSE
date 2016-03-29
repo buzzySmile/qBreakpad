@@ -27,4 +27,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----
 
 This package also includes google-breakpad, distributed under similar terms.
-See third-party/google-breakpad/COPYING for more info.
+See third-party/breakpad/LICENSE for more info.
