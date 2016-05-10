@@ -4,10 +4,6 @@ VERSION = 0.3.0
 
 include($$PWD/../conf.pri)
 
-mac {
-    CONFIG += c++11
-}
-
 CONFIG += warn_on thread exceptions rtti stl
 QT -= gui
 
