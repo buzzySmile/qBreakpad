@@ -17,5 +17,5 @@ win32 {
 DEFINES += QT_NO_CAST_TO_ASCII
 DEFINES += QT_NO_CAST_FROM_ASCII
 
-HEADERS += $$PWD/BreakpadHttpSender.h
-SOURCES += $$PWD/BreakpadHttpSender.cpp
+HEADERS += $$PWD/QBreakpadHttpSender.h
+SOURCES += $$PWD/QBreakpadHttpSender.cpp
