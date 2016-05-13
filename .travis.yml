@@ -8,9 +8,9 @@ env:
 
 before_install:
  - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
+ - sudo add-apt-repository --yes ppa:kalakris/cmake
  - sudo apt-get update -qq
- - sudo apt-get install -qq libqtcore4 qt4-qmake libqt5core5 qt5-qmake qt5-default qtchooser
-
+ - sudo apt-get install -qq cmake libqtcore4 qt4-qmake libqt5core5 qt5-qmake qt5-default qtchooser
 script:
  - qmake -project
  - qmake breakpad-qt.pro
