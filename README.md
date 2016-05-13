@@ -25,7 +25,14 @@ LIBS += -lbreakpad-qt-handler
 ```
 * Use ```BreakpadHandler``` singleton class to enable automatic crash dumps generation on any failure; example:
 ```c++
-BreakpadQt::GlobalHandler::instance()->setDumpPath(QLatin1String("crashes"));
+#include <QBreakpadHandler.h>
+
+int main(int argc, char* argv[])
+{
+    ...
+    QBreakpadInstance.setDumpPath(QLatin1String("crashes"));
+    ...
+}
 ```
 * Read Google Breakpad documentation to know further workflow
 
