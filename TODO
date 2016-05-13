@@ -22,6 +22,6 @@ Demo:
 
 Docs:
 	- "What do you expect to have in debug/release build?"
-		- debugging symbols
-		- special debugging code (#ifndef NDEBUG)
-		- linking with debug versions of libraries
+	- debugging symbols
+	- special debugging code (#ifndef NDEBUG)
+	- linking with debug versions of libraries
