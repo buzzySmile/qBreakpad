@@ -1,8 +1,24 @@
-/* This file is in public domain. */
+/*
+ *  Copyright (C) 2009 Aleksey Palazhchenko
+ *  Copyright (C) 2016 Alexander Makarov
+ *
+ * This file is a part of Breakpad-qt library.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ */
 
 #include "TestThread.h"
 
-#include <BreakpadHandler.h>
+#include <QBreakpadHandler.h>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QTimer>
@@ -16,7 +32,7 @@ int main(int argc, char* argv[])
     app.setOrganizationName(QLatin1String("OrgName"));
     app.setOrganizationDomain(QLatin1String("name.org"));
 
-    BreakpadQt::GlobalHandler::instance()->setDumpPath(QLatin1String("crashes"));
+    QBreakpadInstance.setDumpPath(QLatin1String("crashes"));
 
     qsrand(QDateTime::currentDateTime().toTime_t());
     TestThread t1(false, qrand());
