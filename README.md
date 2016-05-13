@@ -1,3 +1,9 @@
+<p align="center">
+    <a href="https://travis-ci.org/pixraider/breakpad-qt">
+        <img src="https://travis-ci.org/pixraider/breakpad-qt.svg?branch=master"
+             alt="Build Status">
+    </a>
+</p>    
 Breakpad-Qt
 ================
 Breakpad-Qt is Qt library to use google-breakpad crash reporting facilities. Supports
