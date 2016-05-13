@@ -27,4 +27,5 @@ Makefile*
 *.autosave
 
 # other
+*.dmp
 docs/html/
