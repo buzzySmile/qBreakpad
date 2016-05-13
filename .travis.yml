@@ -9,7 +9,7 @@ env:
 before_install:
  - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
  - sudo apt-get update -qq
- - sudo apt-get install -qq libqtcore4 qt4-qmake qt5-qmake qtbase5-dev
+ - sudo apt-get install -qq libqtcore4 qt4-qmake
 
 script:
  - qmake -project
