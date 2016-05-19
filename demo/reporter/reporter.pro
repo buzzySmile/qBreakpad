@@ -7,9 +7,9 @@ CONFIG += thread exceptions rtti stl
 
 SOURCES += main.cpp
 
-include($$PWD/../../breakpad-qt-sender.pri)
+include($$PWD/../../qBreakpad-sender.pri)
 QMAKE_LIBDIR += $$OUT_PWD/../../sender/
-LIBS += -lbreakpad-qt-sender
+LIBS += -lqBreakpad-sender
 
 OBJECTS_DIR = _build/obj
 MOC_DIR = _build

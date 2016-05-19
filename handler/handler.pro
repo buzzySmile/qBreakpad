@@ -1,5 +1,5 @@
 TEMPLATE = lib
-TARGET = breakpad-qt-handler
+TARGET = qBreakpad-handler
 VERSION = 0.4.0
 
 include($$PWD/../conf.pri)
@@ -17,8 +17,8 @@ win32 {
 DEFINES += QT_NO_CAST_TO_ASCII
 DEFINES += QT_NO_CAST_FROM_ASCII
 
-## breakpad-qt
-include($$PWD/../breakpad-qt-handler.pri)
+## qBreakpad
+include($$PWD/../qBreakpad-handler.pri)
 
 ## google-breakpad
 include($$PWD/../third_party/breakpad.pri)

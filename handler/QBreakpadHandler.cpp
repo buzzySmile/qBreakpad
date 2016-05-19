@@ -60,7 +60,6 @@ bool DumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,
         NO STACK USE, NO HEAP USE THERE !!!
         Creating QString's, using qDebug, etc. - everything is crash-unfriendly.
     */
-    // But I'm brave man.
 
 #if defined(Q_OS_WIN32)
     QString path = QString::fromWCharArray(dump_dir) + QLatin1String("/") + QString::fromWCharArray(minidump_id);
@@ -134,7 +133,5 @@ void QBreakpadHandler::setDumpUploadUrl(const QUrl &url)
 {
     if(!url.isValid() || !url.isEmpty())
         return;
-
-    //d->pReportSender = new QBreakpadHttpSender(url);
 }
 

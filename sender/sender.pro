@@ -1,5 +1,5 @@
 TEMPLATE = lib
-TARGET = breakpad-qt-sender
+TARGET = qBreakpad-sender
 VERSION = 0.3.0
 
 include($$PWD/../conf.pri)
