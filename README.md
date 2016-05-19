@@ -1,29 +1,26 @@
-<p align="center">
-    <a href="https://travis-ci.org/pixraider/breakpad-qt">
-        <img src="https://travis-ci.org/pixraider/breakpad-qt.svg?branch=master"
-             alt="Build Status">
-    </a>
-</p>    
-Breakpad-Qt
-================
-Breakpad-Qt is Qt library to use google-breakpad crash reporting facilities. Supports
+#qBreakpad
+
+[![Build status](https://travis-ci.org/pixraider/qBreakpad.svg?branch=master)](https://travis-ci.org/pixraider/qBreakpad)
+
+qBreakpad is Qt library to use google-breakpad crash reporting facilities (and using it conviniently).
+Supports
 * Windows (but crash dump decoding will not work with MinGW compiler)
 * Linux
 * MacOS X
 
 How to use
 ----------------
-* Build breakpad-qt static library (breakpad-qt/handler/)
-* Include "breakpad-qt-handler.pri" to your target Qt project
+* Build qBreakpad static library (qBreakpad/handler/)
+* Include "qBreakpad-handler.pri" to your target Qt project
 ```c++
-include(libs/breakpad-qt/breakpad-qt-handler.pri)
+include(libs/qBreakpad/qBreakpad-handler.pri)
 ```
-* Setup linking with "breakpad-qt-handler" library
+* Setup linking with "qBreakpad-handler" library
 ```c++
 QMAKE_LIBDIR += $$OUT_PWD/submodules/breakpad/handler
-LIBS += -lbreakpad-qt-handler
+LIBS += -lqBreakpad-handler
 ```
-* Use ```BreakpadHandler``` singleton class to enable automatic crash dumps generation on any failure; example:
+* Use ```QBreakpadHandler``` singleton class to enable automatic crash dumps generation on any failure; example:
 ```c++
 #include <QBreakpadHandler.h>
 
