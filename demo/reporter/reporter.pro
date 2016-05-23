@@ -1,18 +1,27 @@
 TEMPLATE = app
 TARGET = reporter
-QT += network
+QT += widgets
+
 CONFIG -= app_bundle
-CONFIG += debug_and_release warn_on console
+CONFIG += warn_on debug_and_release
 CONFIG += thread exceptions rtti stl
 
-SOURCES += main.cpp
+QT += network
+include($$PWD/../../qBreakpad-handler.pri)
+QMAKE_LIBDIR += $$OUT_PWD/../../handler/
+LIBS += -lqBreakpad-handler
 
-include($$PWD/../../qBreakpad-sender.pri)
-QMAKE_LIBDIR += $$OUT_PWD/../../sender/
-LIBS += -lqBreakpad-sender
+# Define the source code
+HEADERS += \
+    $$PWD/../program/TestThread.h \
+    $$PWD/reporter.h
+
+SOURCES += \
+    $$PWD/../program/TestThread.cpp \
+    $$PWD/reporter.cpp
+
+FORMS += \
+    $$PWD/reporter.ui
 
 OBJECTS_DIR = _build/obj
 MOC_DIR = _build
-
-DEFINES += QT_NO_CAST_TO_ASCII
-DEFINES += QT_NO_CAST_FROM_ASCII
