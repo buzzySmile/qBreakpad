@@ -20,41 +20,43 @@
 #ifndef QBREAKPAD_HTTP_SENDER_H
 #define QBREAKPAD_HTTP_SENDER_H
 
-#include <QtCore/QObject>
-#include <QtCore/QPointer>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkRequest>
-#include <QtNetwork/QNetworkReply>
+#include <QObject>
+#include <QPointer>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
 
 class QString;
 class QUrl;
 class QFile;
 
-class QBreakpadHttpSender : public QObject
+class QBreakpadHttpUploader : public QObject
 {
 	Q_OBJECT
 public:
-    QBreakpadHttpSender(const QUrl& url);
-    ~QBreakpadHttpSender();
+    QBreakpadHttpUploader(const QUrl& url);
+    ~QBreakpadHttpUploader();
 
     //TODO: proxy, ssl
-
-    void uploadDump(const QString& fileName);
-
     QString remoteUrl() const;
 
 signals:
-	void finished(QNetworkReply::NetworkError);
+    void finished(QNetworkReply::NetworkError);
+
+public slots:
+    void uploadDump(const QString& fileName);
 
 private slots:
-	void onUploadProgress(qint64 sent, qint64 total);
-	void onUploadFinished();
+    void onUploadProgress(qint64 sent, qint64 total);
+    void onUploadFinished();
 
 private:
-	QNetworkAccessManager m_manager;
-	QNetworkRequest m_request;
-	QPointer<QNetworkReply> m_reply;
-	QFile* m_file;
+    QNetworkAccessManager m_manager;
+    QNetworkRequest m_request;
+    QPointer<QNetworkReply> m_reply;
+    QFile* m_file;
+
+    QString generateMultipartBoundary();
 };
 
 #endif	// QBREAKPAD_HTTP_SENDER_H

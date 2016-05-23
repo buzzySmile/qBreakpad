@@ -20,8 +20,8 @@
 #ifndef QBREAKPAD_HANDLER_H
 #define QBREAKPAD_HANDLER_H
 
-#include <QtCore/QString>
-#include <QtCore/QUrl>
+#include <QString>
+#include <QUrl>
 #include "singletone/singleton.h"
 
 namespace google_breakpad {
@@ -38,8 +38,15 @@ public:
     QBreakpadHandler();
     ~QBreakpadHandler();
 
+    QString uploadUrl() const;
+    QString dumpPath() const;
+    QStringList dumpFileList() const;
+
     void setDumpPath(const QString& path);
-    void setDumpUploadUrl(const QUrl& url);
+    void setUploadUrl(const QUrl& url);
+
+public slots:
+    void sendDumps();
 
 private:
     QBreakpadHandlerPrivate* d;

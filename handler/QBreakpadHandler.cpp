@@ -17,16 +17,18 @@
  *
  */
 
-#include <QtCore/QDir>
-#include <QtCore/QProcess>
-#include <QtCore/QCoreApplication>
+#include <QDir>
+#include <QProcess>
+#include <QCoreApplication>
 
 #include "QBreakpadHandler.h"
+#include "QBreakpadHttpUploader.h"
 
 #if defined(Q_OS_MAC)
 #include "client/mac/handler/exception_handler.h"
 #elif defined(Q_OS_LINUX)
 #include "client/linux/handler/exception_handler.h"
+//#include "common/linux/http_upload.h"
 #elif defined(Q_OS_WIN32)
 #include "client/windows/handler/exception_handler.h"
 #endif
@@ -74,8 +76,13 @@ bool DumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,
 
     // TODO: add http-reporter call here
     // qDebug("Trying to report (HTTP POST)");
-//    QBreakpadHttpSender sender(QUrl::fromPercentEncoding("http://caliper-pixraider.rhcloud.com/crash_upload"));
-//    sender.uploadDump(QString::fromLatin1(descriptor.path()));
+    // Adding parameters
+//    std::map<string, string> params;
+//    params["prod"] = productName;
+//    params["ver"] = productVersion;
+//    google_breakpad::HTTPUpload::SendRequest(QBreakpadHandler::uploadUrl(),
+//                                             params,
+//                                             );
 
     return true;
 }
@@ -84,6 +91,8 @@ class QBreakpadHandlerPrivate
 {
 public:
     google_breakpad::ExceptionHandler* pExptHandler;
+    QString dumpPath;
+    QUrl uploadUrl;
 };
 
 //------------------------------------------------------------------------------
@@ -101,7 +110,7 @@ void QBreakpadHandler::setDumpPath(const QString& path)
 {
     QString absPath = path;
     if(!QDir::isAbsolutePath(absPath)) {
-        absPath = QDir::cleanPath(qApp->applicationDirPath() + QLatin1String("/") + path);
+        absPath = QDir::cleanPath(qApp->applicationDirPath() + "/" + path);
     }
     Q_ASSERT(QDir::isAbsolutePath(absPath));
 
@@ -110,6 +119,8 @@ void QBreakpadHandler::setDumpPath(const QString& path)
         qDebug("Failed to set dump path which not exists: %s", qPrintable(absPath));
         return;
     }
+
+    d->dumpPath = absPath;
 
 // NOTE: ExceptionHandler initialization
 #if defined(Q_OS_WIN32)
@@ -129,9 +140,43 @@ void QBreakpadHandler::setDumpPath(const QString& path)
 #endif
 }
 
-void QBreakpadHandler::setDumpUploadUrl(const QUrl &url)
+QString QBreakpadHandler::uploadUrl() const
 {
-    if(!url.isValid() || !url.isEmpty())
+    return d->uploadUrl.toString();
+}
+
+QStringList QBreakpadHandler::dumpFileList() const
+{
+    if(!d->dumpPath.isNull() && !d->dumpPath.isEmpty()) {
+        QDir dumpDir(d->dumpPath);
+        dumpDir.setNameFilters(QStringList()<<"*.dmp");
+        return dumpDir.entryList();
+    }
+
+    return QStringList();
+}
+
+void QBreakpadHandler::setUploadUrl(const QUrl &url)
+{
+    if(!url.isValid() || url.isEmpty())
         return;
+
+    d->uploadUrl = url;
+}
+
+void QBreakpadHandler::sendDumps()
+{
+    if(!d->dumpPath.isNull() && !d->dumpPath.isEmpty()) {
+        QDir dumpDir(d->dumpPath);
+        dumpDir.setNameFilters(QStringList()<<"*.dmp");
+        QStringList dumpFiles = dumpDir.entryList();
+
+        //qDebug() << "Files for send(" << d->uploadUrl.toString() << ")";
+        foreach(QString itDmpFileName, dumpFiles) {
+            //qDebug() << "/tsending " << d->dumpPath + QLatin1String("/") + itDmpFileName;
+            QBreakpadHttpUploader *sender = new QBreakpadHttpUploader(d->uploadUrl);
+            sender->uploadDump(d->dumpPath + "/" + itDmpFileName);
+        }
+    }
 }
 

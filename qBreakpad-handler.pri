@@ -12,4 +12,5 @@ INCLUDEPATH += $$PWD/handler/ $$PWD/handler/singletone
 HEADERS += \
     $$PWD/handler/singletone/call_once.h \
     $$PWD/handler/singletone/singleton.h \
-    $$PWD/handler/QBreakpadHandler.h
+    $$PWD/handler/QBreakpadHandler.h \
+    $$PWD/handler/QBreakpadHttpUploader.h
