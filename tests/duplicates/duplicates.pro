@@ -1,6 +1,7 @@
 TEMPLATE = app
 TARGET = duplicates_test
 QT -= gui
+QT += network
 CONFIG -= app_bundle
 CONFIG += debug_and_release warn_off console
 CONFIG += thread exceptions rtti stl
