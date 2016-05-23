@@ -44,10 +44,11 @@ signals:
     void finished(QNetworkReply::NetworkError);
 
 public slots:
-    void uploadDump(const QString& fileName);
+    void uploadDump(const QString& abs_file_path);
 
 private slots:
     void onUploadProgress(qint64 sent, qint64 total);
+    void onError(QNetworkReply::NetworkError err);
     void onUploadFinished();
 
 private:
