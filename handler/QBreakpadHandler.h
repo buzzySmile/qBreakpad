@@ -35,6 +35,8 @@ class QBreakpadHandler: public QObject
 {
     Q_OBJECT
 public:
+    static QString version();
+
     QBreakpadHandler();
     ~QBreakpadHandler();
 

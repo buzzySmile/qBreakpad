@@ -24,6 +24,8 @@
 #include "QBreakpadHandler.h"
 #include "QBreakpadHttpUploader.h"
 
+#define QBREAKPAD_VERSION  0x000400
+
 #if defined(Q_OS_MAC)
 #include "client/mac/handler/exception_handler.h"
 #elif defined(Q_OS_LINUX)
@@ -96,6 +98,14 @@ public:
 };
 
 //------------------------------------------------------------------------------
+QString QBreakpadHandler::version()
+{
+    return QString("%1.%2.%3").arg(
+        QString::number((QBREAKPAD_VERSION >> 16) & 0xff),
+        QString::number((QBREAKPAD_VERSION >> 8) & 0xff),
+        QString::number(QBREAKPAD_VERSION & 0xff));
+}
+
 QBreakpadHandler::QBreakpadHandler() :
     d(new QBreakpadHandlerPrivate())
 {
@@ -124,11 +134,12 @@ void QBreakpadHandler::setDumpPath(const QString& path)
 
 // NOTE: ExceptionHandler initialization
 #if defined(Q_OS_WIN32)
-    d->handler_ = new google_breakpad::ExceptionHandler(absPath.toStdWString(), /*FilterCallback*/ 0,
+    d->pExptHandler = new google_breakpad::ExceptionHandler(absPath.toStdWString(), /*FilterCallback*/ 0,
                                                         DumpCallback, /*context*/ 0,
                                                         google_breakpad::ExceptionHandler::HANDLER_ALL);
 #elif defined(Q_OS_MAC)
-    d->handler_ = new google_breakpad::ExceptionHandler(absPath.toStdString(), /*FilterCallback*/ 0,
+    d->pExptHandler = new google_breakpad::ExceptionHandler(absPath.toStdString(),
+                                                            /*FilterCallback*/ 0,
                                                         DumpCallback, /*context*/ 0, true, NULL);
 #else
     d->pExptHandler = new google_breakpad::ExceptionHandler(google_breakpad::MinidumpDescriptor(absPath.toStdString()),
