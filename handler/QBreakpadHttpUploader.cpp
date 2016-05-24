@@ -72,7 +72,7 @@ void QBreakpadHttpUploader::uploadDump(const QString& abs_file_path)
     if(!m_file->open(QIODevice::ReadOnly)) return;
 
     filePart.setBodyDevice(m_file);
-    m_file->setParent(multiPart); // we cannot delete the file now, so delete it with the multiPart
+    m_file->setParent(multiPart);
 
     multiPart->append(prodPart);
     multiPart->append(verPart);
@@ -127,17 +127,4 @@ void QBreakpadHttpUploader::onUploadFinished()
 
 	delete m_file;
 	m_file = 0;
-}
-
-QString QBreakpadHttpUploader::generateMultipartBoundary()
-{
-    // The boundary has 27 '-' characters followed by 16 hex digits
-    //QString boundaryPrefix = QLatin1String("---------------------------");
-    //int boundaryLength = 27 + 16 + 1;
-
-    // Generate some random numbers to fill out the boundary
-    int r0 = qrand();
-    int r1 = qrand();
-
-    return QString("%1%2%3").arg("---------------------------").arg(r0, 8).arg(r1, 8);
 }

@@ -56,8 +56,6 @@ private:
     QNetworkRequest m_request;
     QPointer<QNetworkReply> m_reply;
     QFile* m_file;
-
-    QString generateMultipartBoundary();
 };
 
 #endif	// QBREAKPAD_HTTP_SENDER_H
