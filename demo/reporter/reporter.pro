@@ -7,9 +7,9 @@ CONFIG += warn_on debug_and_release
 CONFIG += thread exceptions rtti stl
 
 QT += network
-include($$PWD/../../qBreakpad-handler.pri)
+include($$PWD/../../qBreakpad.pri)
 QMAKE_LIBDIR += $$OUT_PWD/../../handler/
-LIBS += -lqBreakpad-handler
+LIBS += -lqBreakpad
 
 # Define the source code
 HEADERS += \

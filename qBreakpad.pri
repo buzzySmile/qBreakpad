@@ -1,3 +1,5 @@
+message("BREAKPAD_crash_handler_attached")
+
 # test config
 # TODO actually, I shoud check it better
 LIST = thread exceptions rtti stl
@@ -7,10 +9,8 @@ for(f, LIST) {
     }
 }
 
-INCLUDEPATH += $$PWD/handler/ $$PWD/handler/singletone
+INCLUDEPATH += $$PWD/handler/
 
 HEADERS += \
-    $$PWD/handler/singletone/call_once.h \
-    $$PWD/handler/singletone/singleton.h \
     $$PWD/handler/QBreakpadHandler.h \
     $$PWD/handler/QBreakpadHttpUploader.h

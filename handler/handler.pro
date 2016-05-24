@@ -1,5 +1,6 @@
 TEMPLATE = lib
-TARGET = qBreakpad-handler
+TARGET = qBreakpad
+#Application version
 VERSION = 0.4.0
 
 include($$PWD/../conf.pri)
@@ -14,11 +15,15 @@ win32 {
     DESTDIR = $$OUT_PWD
 }
 
-## qBreakpad
-include($$PWD/../qBreakpad-handler.pri)
+### qBreakpad
+HEADERS += \
+    $$PWD/singletone/call_once.h \
+    $$PWD/singletone/singleton.h
+include($$PWD/../qBreakpad.pri)
 
 ## google-breakpad
 include($$PWD/../third_party/breakpad.pri)
+
 
 SOURCES += \
     $$PWD/QBreakpadHandler.cpp \
