@@ -32,6 +32,7 @@ ReporterExample::ReporterExample (QWidget *parent) :
 {
     // Create and configure the user interface
     ui->setupUi (this);
+    this->setWindowTitle("ReporterExample (qBreakpad v."+QBreakpadHandler::version()+")");
     ui->urlLineEdit->setText(QBreakpadInstance.uploadUrl());
 
     ui->dumpFilesTextEdit->appendPlainText(QBreakpadInstance.dumpFileList().join("\n"));
