@@ -30,7 +30,6 @@
 #include "client/mac/handler/exception_handler.h"
 #elif defined(Q_OS_LINUX)
 #include "client/linux/handler/exception_handler.h"
-//#include "common/linux/http_upload.h"
 #elif defined(Q_OS_WIN32)
 #include "client/windows/handler/exception_handler.h"
 #endif
@@ -74,17 +73,6 @@ bool DumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,
 #else
     qDebug("%s, dump path: %s\n", succeeded ? "Succeed to write minidump" : "Failed to write minidump", descriptor.path());
 #endif
-
-
-    // TODO: add http-reporter call here
-    // qDebug("Trying to report (HTTP POST)");
-    // Adding parameters
-//    std::map<string, string> params;
-//    params["prod"] = productName;
-//    params["ver"] = productVersion;
-//    google_breakpad::HTTPUpload::SendRequest(QBreakpadHandler::uploadUrl(),
-//                                             params,
-//                                             );
 
     return true;
 }
@@ -182,9 +170,8 @@ void QBreakpadHandler::sendDumps()
         dumpDir.setNameFilters(QStringList()<<"*.dmp");
         QStringList dumpFiles = dumpDir.entryList();
 
-        //qDebug() << "Files for send(" << d->uploadUrl.toString() << ")";
         foreach(QString itDmpFileName, dumpFiles) {
-            //qDebug() << "/tsending " << d->dumpPath + QLatin1String("/") + itDmpFileName;
+            qDebug() << "Sending " << QString(itDmpFileName);
             QBreakpadHttpUploader *sender = new QBreakpadHttpUploader(d->uploadUrl);
             sender->uploadDump(d->dumpPath + "/" + itDmpFileName);
         }

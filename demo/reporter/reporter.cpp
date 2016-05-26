@@ -12,11 +12,12 @@ int main (int argc, char *argv[])
 
     QCoreApplication::setApplicationName("ReporterExample");
     QCoreApplication::setApplicationVersion("0.0.1");
-    QCoreApplication::setOrganizationName(QLatin1String("OrgName"));
-    QCoreApplication::setOrganizationDomain(QLatin1String("name.org"));
+    QCoreApplication::setOrganizationName("OrgName");
+    QCoreApplication::setOrganizationDomain("name.org");
 
-    QBreakpadInstance.setDumpPath(QLatin1String("crashes"));
-    QBreakpadInstance.setUploadUrl(QUrl("http://caliper-pixraider.rhcloud.com/crash_upload"));
+    // Set directory to store dumps and url to upload
+    QBreakpadInstance.setDumpPath("crashes");
+    QBreakpadInstance.setUploadUrl(QUrl("http://your.site.com/crash_upload"));
 
     // Create the dialog and show it
     ReporterExample example;

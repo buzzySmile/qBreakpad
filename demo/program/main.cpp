@@ -27,12 +27,12 @@
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    app.setApplicationName(QLatin1String("AppName"));
-    app.setApplicationVersion(QLatin1String("1.0"));
-    app.setOrganizationName(QLatin1String("OrgName"));
-    app.setOrganizationDomain(QLatin1String("name.org"));
+    app.setApplicationName("AppName");
+    app.setApplicationVersion("1.0");
+    app.setOrganizationName("OrgName");
+    app.setOrganizationDomain("name.org");
 
-    QBreakpadInstance.setDumpPath(QLatin1String("crashes"));
+    QBreakpadInstance.setDumpPath("crashes");
 
     qsrand(QDateTime::currentDateTime().toTime_t());
     TestThread t1(false, qrand());
