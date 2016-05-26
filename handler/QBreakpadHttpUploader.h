@@ -34,14 +34,16 @@ class QBreakpadHttpUploader : public QObject
 {
 	Q_OBJECT
 public:
-    QBreakpadHttpUploader(const QUrl& url);
+    QBreakpadHttpUploader(QObject *parent=0);
+    QBreakpadHttpUploader(const QUrl& url, QObject *parent=0);
     ~QBreakpadHttpUploader();
 
     //TODO: proxy, ssl
     QString remoteUrl() const;
+    void setUrl(const QUrl& url);
 
 signals:
-    void finished(QNetworkReply::NetworkError);
+    void finished(QString answer);
 
 public slots:
     void uploadDump(const QString& abs_file_path);

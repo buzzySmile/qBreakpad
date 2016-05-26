@@ -27,10 +27,18 @@
 
 #include "QBreakpadHttpUploader.h"
 
-QBreakpadHttpUploader::QBreakpadHttpUploader(const QUrl& url) :
+QBreakpadHttpUploader::QBreakpadHttpUploader(QObject *parent) :
+    QObject(parent),
     m_file(0)
 {
-	m_request.setUrl(url);
+
+}
+
+QBreakpadHttpUploader::QBreakpadHttpUploader(const QUrl &url, QObject *parent) :
+    QObject(parent),
+    m_file(0)
+{
+    m_request.setUrl(url);
 }
 
 QBreakpadHttpUploader::~QBreakpadHttpUploader()
@@ -41,6 +49,16 @@ QBreakpadHttpUploader::~QBreakpadHttpUploader()
 	}
 
 	delete m_file;
+}
+
+QString QBreakpadHttpUploader::remoteUrl() const
+{
+    return m_request.url().toString();
+}
+
+void QBreakpadHttpUploader::setUrl(const QUrl &url)
+{
+    m_request.setUrl(url);
 }
 
 void QBreakpadHttpUploader::uploadDump(const QString& abs_file_path)
@@ -92,11 +110,6 @@ void QBreakpadHttpUploader::uploadDump(const QString& abs_file_path)
             this,      SLOT(onUploadFinished()));
 }
 
-QString QBreakpadHttpUploader::remoteUrl() const
-{
-    return m_request.url().toString();
-}
-
 void QBreakpadHttpUploader::onUploadProgress(qint64 sent, qint64 total)
 {
     qDebug("upload progress: %lld/%lld", sent, total);
@@ -119,7 +132,7 @@ void QBreakpadHttpUploader::onUploadFinished()
         qDebug() << "Upload to " << remoteUrl() << " success!";
         m_file->remove();
 	}
-	emit finished(m_reply->error());
+    emit finished(data);
 
 	m_reply->close();
 	m_reply->deleteLater();
@@ -128,3 +141,4 @@ void QBreakpadHttpUploader::onUploadFinished()
 	delete m_file;
 	m_file = 0;
 }
+
