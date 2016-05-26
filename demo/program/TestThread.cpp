@@ -17,7 +17,7 @@
 
 #include "TestThread.h"
 
-#include <QtCore/QTimer>
+#include <QTimer>
 
 TestThread::TestThread(bool buggy, uint seed)
 	: m_buggy(buggy)

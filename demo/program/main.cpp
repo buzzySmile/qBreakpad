@@ -16,21 +16,21 @@
  *
  */
 
+#include <QCoreApplication>
+#include <QTimer>
+#include <QDateTime>
+
+#include "QBreakpadHandler.h"
 #include "TestThread.h"
-
-#include <QBreakpadHandler.h>
-
-#include <QtCore/QCoreApplication>
-#include <QtCore/QTimer>
-#include <QtCore/QDateTime>
 
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    app.setApplicationName("AppName");
-    app.setApplicationVersion("1.0");
-    app.setOrganizationName("OrgName");
-    app.setOrganizationDomain("name.org");
+
+    QCoreApplication::setApplicationName("AppName");
+    QCoreApplication::setApplicationVersion("1.0");
+    QCoreApplication::setOrganizationName("OrgName");
+    QCoreApplication::setOrganizationDomain("name.org");
 
     QBreakpadInstance.setDumpPath("crashes");
 

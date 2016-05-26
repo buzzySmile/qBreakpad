@@ -18,7 +18,7 @@
 #ifndef TESTTHREAD_H
 #define TESTTHREAD_H
 
-#include <QtCore/QThread>
+#include <QThread>
 
 class TestThread : public QThread
 {
