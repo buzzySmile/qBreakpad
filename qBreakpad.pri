@@ -9,6 +9,9 @@ for(f, LIST) {
     }
 }
 
+# define breakpad server    SOCORRO / CALIPER
+DEFINES += CALIPER
+
 INCLUDEPATH += $$PWD/handler/
 
 HEADERS += \

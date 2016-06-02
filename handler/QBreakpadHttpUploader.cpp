@@ -72,18 +72,24 @@ void QBreakpadHttpUploader::uploadDump(const QString& abs_file_path)
 
     //product name parameter
     QHttpPart prodPart;
-    prodPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"prod\""));
+#if defined(SOCORRO)
+    prodPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"ProductName\""));      // Socorro
+#elif defined(CALIPER)
+    prodPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"prod\""));     // Caliper
+#endif
     prodPart.setBody(qApp->applicationName().toLatin1());
     //product version parameter
     QHttpPart verPart;
-    verPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"ver\""));
+#if defined(SOCORRO)
+    verPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"Version\""));      // Socorro
+#elif defined(CALIPER)
+    verPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"ver\""));     // Caliper
+#endif
     verPart.setBody(qApp->applicationVersion().toLatin1());
-    //file_minidump name parameter
-    QHttpPart fnamePart;
-    fnamePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"upload_file_minidump\"; filename=\""+ fileInfo.fileName()+ "\""));
 
-    //filepart
+    // file_minidump name & file_binary in one part
     QHttpPart filePart;
+    filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"upload_file_minidump\"; filename=\""+ fileInfo.fileName()+ "\""));
     filePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
 
     m_file = new QFile(abs_file_path);
@@ -94,8 +100,13 @@ void QBreakpadHttpUploader::uploadDump(const QString& abs_file_path)
 
     multiPart->append(prodPart);
     multiPart->append(verPart);
-    multiPart->append(fnamePart);
     multiPart->append(filePart);
+
+    m_request.setRawHeader("User-Agent", qApp->applicationName().toLatin1()+"/"+qApp->applicationVersion().toLatin1());
+#if defined(SOCORRO)
+    m_request.setRawHeader("Host", "tamtam_reports");
+    m_request.setRawHeader("Accept", "*/*");
+#endif
 
     m_reply = m_manager.post(m_request, multiPart);
     multiPart->setParent(m_reply);
