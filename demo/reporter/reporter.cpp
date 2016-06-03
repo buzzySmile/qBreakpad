@@ -34,7 +34,12 @@ int main (int argc, char *argv[])
 
     // Set directory to store dumps and url to upload
     QBreakpadInstance.setDumpPath("crashes");
-    QBreakpadInstance.setUploadUrl(QUrl("http://your.site.com/crash_upload"));
+    // Set server type for uploading
+#if defined(SOCORRO)
+    QBreakpadInstance.setUploadUrl(QUrl("http://[your.site.com]/submit"));
+#elif defined(CALIPER)
+    QBreakpadInstance.setUploadUrl(QUrl("http://[your.site.com]/crash_upload"));
+#endif
 
     // Create the dialog and show it
     ReporterExample example;

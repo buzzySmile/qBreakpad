@@ -19,7 +19,7 @@ include($$PWD/../../qBreakpad.pri)
 QMAKE_LIBDIR += $$OUT_PWD/../../handler
 LIBS += -lqBreakpad
 
-# Define the source code
+# source code
 HEADERS += \
     $$PWD/../program/TestThread.h \
     $$PWD/reporter.h
