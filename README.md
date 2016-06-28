@@ -10,6 +10,10 @@ Supports
 
 How to use
 ----------------
+* Clone repository recursively
+```bash
+$ git clone --recursive https://github.com/pixraider/qBreakpad.git
+```
 * Build qBreakpad static library (qBreakpad/handler/)
 * Include "qBreakpad-handler.pri" to your target Qt project
 ```c++
