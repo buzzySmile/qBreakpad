@@ -1,22 +1,19 @@
 language: cpp
+compiler: gcc
 
-compiler:
- - gcc
-
-env:
- - QT4_BUILD=OFF
-
-sudo: required
 dist: trusty
+sudo: required
 
 before_install:
-  - sudo add-apt-repository --yes ppa:beineri/opt-qt551-trusty
-  - sudo apt-get update -qq
+    - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+    - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
+    - sudo apt-get update -qq
 
 install:
-  - sudo apt-get -y install qt55[QTPACKAGE]
+    - sudo apt-get install -y --force-yes build-essential g++-4.8 -y
+    - sudo apt-get install -y --force-yes libudev-dev libts-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libpulse-dev -y
+    - sudo apt-get install -y --force-yes qtbase5-dev qtdeclarative5-dev libqt5gui5 qttools5-dev-tools qttools5-dev qtmultimedia5-dev
 
 script:
-  - source /opt/qt55/bin/qt55-env.sh
-  - /opt/qt55/bin/qmake qBreakpad.pro
-  - make
+    - qmake -qt=qt5 qBreakpad.pro
+    - make -j4
