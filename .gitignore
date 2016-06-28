@@ -29,4 +29,5 @@ Makefile*
 # other
 *.DS_Store
 *.dmp
+*.bak
 docs/html/
