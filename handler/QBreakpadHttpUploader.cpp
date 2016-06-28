@@ -104,7 +104,7 @@ void QBreakpadHttpUploader::uploadDump(const QString& abs_file_path)
 
     m_request.setRawHeader("User-Agent", qApp->applicationName().toLatin1()+"/"+qApp->applicationVersion().toLatin1());
 #if defined(SOCORRO)
-    m_request.setRawHeader("Host", "tamtam_reports");
+    m_request.setRawHeader("Host", qApp->applicationName().toLower().toLatin1()+"_reports");
     m_request.setRawHeader("Accept", "*/*");
 #endif
 
