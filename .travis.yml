@@ -16,4 +16,4 @@ install:
 
 script:
     - qmake -qt=qt5 qBreakpad.pro
-    - make -j4
+    - make
