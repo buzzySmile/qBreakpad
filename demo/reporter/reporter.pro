@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET = reporter
+TARGET = ReporterExample
 
 QT += core network
 greaterThan(QT_MAJOR_VERSION, 4) {
