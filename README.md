@@ -1,6 +1,6 @@
 #qBreakpad
 
-[![Build status](https://travis-ci.org/pixraider/qBreakpad.svg?branch=master)](https://travis-ci.org/pixraider/qBreakpad)
+[![Build status](https://travis-ci.org/buseySmile/qBreakpad.svg?branch=master)](https://travis-ci.org/buseySmile/qBreakpad)
 
 qBreakpad is Qt library to use google-breakpad crash reporting facilities (and using it conviniently).
 Supports
