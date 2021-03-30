@@ -15,14 +15,14 @@ How to use
 $ git clone --recursive https://github.com/buzzySmile/qBreakpad.git
 ```
 * Build qBreakpad static library (qBreakpad/handler/)
-* Include "qBreakpad-handler.pri" to your target Qt project
+* Include "qBreakpad.pri" to your target Qt project
 ```c++
-include(libs/qBreakpad/qBreakpad-handler.pri)
+include($$PWD/{PATH_TO_QBREAKPAD}/qBreakpad.pri)
 ```
-* Setup linking with "qBreakpad-handler" library
+* Setup linking with "qBreakpad" library
 ```c++
-QMAKE_LIBDIR += $$OUT_PWD/submodules/breakpad/handler
-LIBS += -lqBreakpad-handler
+QMAKE_LIBDIR += $$PWD/{PATH_TO_QBREAKPAD}/handler
+LIBS += -lqBreakpad
 ```
 * Use ```QBreakpadHandler``` singleton class to enable automatic crash dumps generation on any failure; example:
 ```c++

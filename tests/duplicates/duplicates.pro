@@ -13,7 +13,7 @@ CONFIG += c++11
 macx: LIBS += -framework AppKit
 
 include($$PWD/../../qBreakpad.pri)
-QMAKE_LIBDIR += $$OUT_PWD/../../handler
+QMAKE_LIBDIR += $$PWD/../../handler
 LIBS += -lqBreakpad
 
 SOURCES += main.cpp
