@@ -9,9 +9,7 @@ QT += core network
 
 OBJECTS_DIR = _build/obj
 MOC_DIR = _build
-win32 {
-    DESTDIR = $$OUT_PWD
-}
+DESTDIR = $$PWD
 
 ### qBreakpad config
 include($$PWD/../config.pri)

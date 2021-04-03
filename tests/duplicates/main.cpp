@@ -20,17 +20,18 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringList>
+#include <QFile>
 
 #include <cstdio>
 
-int buggyFunc()
+void buggyFunc()
 {
     delete reinterpret_cast<QString*>(0xFEE1DEAD);
 }
 
-int f3(int);
+void f3(int);
 
-int f1(int i)
+void f1(int i)
 {
     if(i) {
         f3(i-1);
@@ -39,12 +40,12 @@ int f1(int i)
     }
 }
 
-int f2(int i)
+void f2(int i)
 {
     f1( i>0 ? i-1 : i);
 }
 
-int f3(int i)
+void f3(int i)
 {
     f2( i>0 ? i-1 : i );
 }
