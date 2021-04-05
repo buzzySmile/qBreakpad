@@ -1,2 +1,4 @@
 TEMPLATE = subdirs
-SUBDIRS += duplicates
+
+CONFIG += ordered
+SUBDIRS += duplicates testsRunner

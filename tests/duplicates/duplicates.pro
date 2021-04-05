@@ -4,6 +4,10 @@ TARGET = duplicates_test
 QT -= gui
 QT += network
 
+win32 {
+    DESTDIR = $$OUT_PWD
+}
+
 CONFIG -= app_bundle
 CONFIG += debug_and_release warn_off
 CONFIG += thread exceptions rtti stl
@@ -13,7 +17,7 @@ CONFIG += c++11
 macx: LIBS += -framework AppKit
 
 include($$PWD/../../qBreakpad.pri)
-QMAKE_LIBDIR += $$OUT_PWD/../../handler
+QMAKE_LIBDIR += $$PWD/../../handler
 LIBS += -lqBreakpad
 
 SOURCES += main.cpp

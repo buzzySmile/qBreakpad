@@ -14,7 +14,7 @@ macx: LIBS += -framework AppKit
 
 # link qBreakpad library
 include($$PWD/../../qBreakpad.pri)
-QMAKE_LIBDIR += $$OUT_PWD/../../handler
+QMAKE_LIBDIR += $$PWD/../../handler
 LIBS += -lqBreakpad
 
 HEADERS += $$PWD/TestThread.h
