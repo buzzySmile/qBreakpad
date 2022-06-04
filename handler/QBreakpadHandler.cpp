@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright (C) 2009 Aleksey Palazhchenko
  *  Copyright (C) 2014 Sergey Shambir
  *  Copyright (C) 2016 Alexander Makarov
@@ -32,6 +32,7 @@
 #include "client/linux/handler/exception_handler.h"
 #elif defined(Q_OS_WIN32)
 #include "client/windows/handler/exception_handler.h"
+#include "WinVeh.h"
 #endif
 
 #if defined(Q_OS_WIN32)
@@ -159,6 +160,43 @@ QStringList QBreakpadHandler::dumpFileList() const
 
     return QStringList();
 }
+
+void QBreakpadHandler::DelOldDumpFiles(int keepLastestFileNum)
+{
+    QStringList sDmpFileNames = QBreakpadInstance.dumpFileList();
+    if (sDmpFileNames.size() > keepLastestFileNum) {
+        QMap<QDateTime, QString> mapMTimeFile;
+        foreach (const QString &sFileName, sDmpFileNames) {
+            QString sFilePath = QBreakpadInstance.dumpPath() + "/" + sFileName;
+            QFileInfo fi(sFilePath);
+            // insertMulti: OS may not have enough time precision to tell the file's MTime(files created in a mostly same time), or files just are your test copys
+            mapMTimeFile.insertMulti(fi.lastModified(), sFilePath);
+        }
+
+        auto iter = mapMTimeFile.begin();
+        for (int i=0; i<mapMTimeFile.size() - keepLastestFileNum; i++, iter++) {
+            QFile::remove(iter.value());
+        }
+    }
+}
+
+void QBreakpadHandler::toCrash()
+{
+    double VarWithInitValue = 456.321;
+    int VarWithDynVal = qrand();
+    if (VarWithInitValue == 0.0)
+        VarWithDynVal = 123321;
+
+    volatile int* iNotExistVar = (int*)(NULL);
+    *iNotExistVar = 2;
+}
+
+#ifdef Q_OS_WIN32
+void QBreakpadHandler::AddWindowsVeh()
+{
+    WinVeh::AddVeh();
+}
+#endif
 
 void QBreakpadHandler::setUploadUrl(const QUrl &url)
 {

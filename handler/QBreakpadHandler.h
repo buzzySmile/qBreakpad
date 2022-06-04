@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright (C) 2009 Aleksey Palazhchenko
  *  Copyright (C) 2014 Sergey Shambir
  *  Copyright (C) 2016 Alexander Makarov
@@ -46,6 +46,19 @@ public:
 
     void setDumpPath(const QString& path);
     void setUploadUrl(const QUrl& url);
+
+    /// Delete dump files but keep \a keepLastestFileNum latest file according file's time
+    static void DelOldDumpFiles(int keepLastestFileNum);
+
+    /// To crash. A static test function
+    static void toCrash();
+
+#ifdef Q_OS_WIN32
+    /// Add a windows veh. Experimental Function
+    /// \details Google breakpad do not catch exception after qt app enters main event loop, so add a veh to catch exceptions.
+    /// Test environment: qt5.6.2_mingw, qt5.6.2_msvc2015-32bit, qt5.9.9_mingw, qt5.9.9_msvc2015-32bit
+    static void AddWindowsVeh();
+#endif
 
 public slots:
     void sendDumps();

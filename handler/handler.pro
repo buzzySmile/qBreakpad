@@ -17,6 +17,11 @@ include($$PWD/../config.pri)
 ## google-breakpad
 include($$PWD/../third_party/breakpad.pri)
 
+win32 {
+HEADERS += WinVeh.h
+SOURCES += WinVeh.cpp
+}
+
 HEADERS += \
     $$PWD/singletone/call_once.h \
     $$PWD/singletone/singleton.h \
