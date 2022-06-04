@@ -4,7 +4,7 @@
 
 qBreakpad is Qt library to use google-breakpad crash reporting facilities (and using it conviniently).
 Supports
-* Windows (but crash dump decoding will not work with MinGW compiler)
+* Windows
 * Linux
 * MacOS X
 
@@ -41,4 +41,16 @@ Getting started with Google Breakpad
 ----------------
 https://chromium.googlesource.com/breakpad/breakpad/+/master/docs/getting_started_with_breakpad.md
 
+Tips of building and dump's decoding
+----------------
+* MinGW:
+You can try to use the tool **cv2pdb**(https://github.com/rainers/cv2pdb), to strip the debug information from the binary and generate the pdb file, 
+then use Visual Studio to decode the dump conveniently.
+* Linux:
+You can use the tool **minidump-2-core** of Google Breakpad, to convert the dump file to core file, then use QtCreator to decode the dump conveniently.
+* Mac:
+Refer to qBreakpad's Wiki
+
+Wiki
+----------------
 Detail description about integration `qBreakpad` into your system and platform you could find in **[Wiki](https://github.com/buzzySmile/qBreakpad/wiki)**.
