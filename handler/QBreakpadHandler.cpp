@@ -32,7 +32,6 @@
 #include "client/linux/handler/exception_handler.h"
 #elif defined(Q_OS_WIN32)
 #include "client/windows/handler/exception_handler.h"
-#include "WinVeh.h"
 #endif
 
 #if defined(Q_OS_WIN32)
@@ -190,13 +189,6 @@ void QBreakpadHandler::toCrash()
     volatile int* iNotExistVar = (int*)(NULL);
     *iNotExistVar = 2;
 }
-
-#ifdef Q_OS_WIN32
-void QBreakpadHandler::AddWindowsVeh()
-{
-    WinVeh::AddVeh();
-}
-#endif
 
 void QBreakpadHandler::setUploadUrl(const QUrl &url)
 {

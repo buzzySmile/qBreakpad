@@ -24,6 +24,10 @@
 #include <QUrl>
 #include "singletone/singleton.h"
 
+#if defined(Q_OS_WIN32)
+#include "WinVeh.h"
+#endif
+
 namespace google_breakpad {
     class ExceptionHandler;
     class MinidumpDescriptor;
@@ -52,13 +56,6 @@ public:
 
     /// To crash. A static test function
     static void toCrash();
-
-#ifdef Q_OS_WIN32
-    /// Add a windows veh. Experimental Function
-    /// \details Google breakpad do not catch exception after qt app enters main event loop, so add a veh to catch exceptions.
-    /// Test environment: qt5.6.2_mingw, qt5.6.2_msvc2015-32bit, qt5.9.9_mingw, qt5.9.9_msvc2015-32bit
-    static void AddWindowsVeh();
-#endif
 
 public slots:
     void sendDumps();
