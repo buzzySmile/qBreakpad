@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright (C) 2009 Aleksey Palazhchenko
  *  Copyright (C) 2016 Alexander Makarov
  *
@@ -22,6 +22,7 @@
 
 #include "QBreakpadHandler.h"
 #include "TestThread.h"
+#include "TestMainThread.h"
 
 int main(int argc, char* argv[])
 {
@@ -34,12 +35,18 @@ int main(int argc, char* argv[])
 
     QBreakpadInstance.setDumpPath("crashes");
 
-    qsrand(QDateTime::currentDateTime().toTime_t());
-    TestThread t1(false, qrand());
-    TestThread t2(true, qrand());
+    bool bTestMainThread = false;
+    if (bTestMainThread) {
+        TestMainThread mth;
+        QTimer::singleShot(1, &mth, SLOT(crash()));
 
-    t1.start();
-    t2.start();
+    } else {
+        qsrand(QDateTime::currentDateTime().toTime_t());
+        TestThread t1(false, qrand());
+        TestThread t2(true, qrand());
+        t1.start();
+        t2.start();
+    }
 
     QTimer::singleShot(3000, qApp, SLOT(quit()));
     return app.exec();

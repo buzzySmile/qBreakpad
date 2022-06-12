@@ -1,2 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS = program reporter
+SUBDIRS = program \
+    programGui \
+    reporter
+
