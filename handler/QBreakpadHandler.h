@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright (C) 2009 Aleksey Palazhchenko
  *  Copyright (C) 2014 Sergey Shambir
  *  Copyright (C) 2016 Alexander Makarov
@@ -24,6 +24,10 @@
 #include <QUrl>
 #include "singletone/singleton.h"
 
+#if defined(Q_OS_WIN32)
+#include "WinVeh.h"
+#endif
+
 namespace google_breakpad {
     class ExceptionHandler;
     class MinidumpDescriptor;
@@ -46,6 +50,12 @@ public:
 
     void setDumpPath(const QString& path);
     void setUploadUrl(const QUrl& url);
+
+    /// Delete dump files but keep \a keepLastestFileNum latest file according file's time
+    static void DelOldDumpFiles(int keepLastestFileNum);
+
+    /// To crash. A static test function
+    static void toCrash();
 
 public slots:
     void sendDumps();

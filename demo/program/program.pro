@@ -17,8 +17,10 @@ include($$PWD/../../qBreakpad.pri)
 QMAKE_LIBDIR += $$PWD/../../handler
 LIBS += -lqBreakpad
 
-HEADERS += $$PWD/TestThread.h
-SOURCES += $$PWD/TestThread.cpp
+HEADERS += $$PWD/TestThread.h \
+    TestMainThread.h
+SOURCES += $$PWD/TestThread.cpp \
+    TestMainThread.cpp
 
 SOURCES += $$PWD/main.cpp
 
